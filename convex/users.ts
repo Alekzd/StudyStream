@@ -118,3 +118,18 @@ export const updateFocusStats = mutation({
     });
   },
 });
+
+// Get recent focus logs for current user (for activity heatmap)
+export const getMyFocusLogs = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const user = await getAuthUser(ctx);
+    if (!user) return [];
+
+    return ctx.db
+      .query("focusLogs")
+      .withIndex("by_user_and_date", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .take(args.limit ?? 90);
+  },
+});

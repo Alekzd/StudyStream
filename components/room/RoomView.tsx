@@ -11,8 +11,10 @@ import { useUser } from "@clerk/nextjs";
 import { StudyVideoGrid } from "./StudyVideoGrid";
 import { PomodoroTimer } from "@/components/pomodoro/PomodoroTimer";
 import { ChatDrawer } from "./ChatDrawer";
+import { SoundscapeMixer } from "@/components/soundscape/SoundscapeMixer";
+import { DiagnosticHUD } from "./DiagnosticHUD";
 import { getArchetypeLabel, getArchetypeColor, cn } from "@/lib/utils";
-import { MessageSquare, Volume2, Maximize2, LogOut } from "lucide-react";
+import { MessageSquare, Volume2, Maximize2, LogOut, Headphones, Eye, Sparkles, FlaskConical } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface RoomViewProps {
@@ -41,6 +43,9 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
   const [error, setError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isSoundscapeOpen, setIsSoundscapeOpen] = useState(false);
+  const [isSensoryFriendly, setIsSensoryFriendly] = useState(false);
+  const [showDiagnosticHUD, setShowDiagnosticHUD] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Determine user's role in this server
@@ -177,7 +182,7 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
         </div>
 
         {/* Compact Pomodoro in header */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <PomodoroTimer
             roomId={roomId as Id<"rooms">}
             serverId={serverId as Id<"servers">}
@@ -186,17 +191,69 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
           />
 
           <button
-            onClick={() => setIsChatOpen((v) => !v)}
-            className="p-2 text-neutral-500 hover:text-neutral-300 transition-colors"
-            title="Chat (khi giờ nghỉ)"
+            onClick={() => {
+              setIsSoundscapeOpen((v) => !v);
+              if (!isSoundscapeOpen) setIsChatOpen(false);
+            }}
+            className={cn(
+              "p-2 rounded-lg transition-colors",
+              isSoundscapeOpen
+                ? "text-indigo-400 bg-indigo-950/40"
+                : "text-neutral-500 hover:text-neutral-300"
+            )}
+            title="Bộ hòa âm không gian (Rain/Lofi)"
+          >
+            <Headphones size={18} />
+          </button>
+
+          <button
+            onClick={() => setIsSensoryFriendly((v) => !v)}
+            className={cn(
+              "p-2 rounded-lg transition-colors",
+              isSensoryFriendly
+                ? "text-amber-400 bg-amber-950/40"
+                : "text-neutral-500 hover:text-neutral-300"
+            )}
+            title={isSensoryFriendly ? "Chế độ ADHD/Sensory: BẬT" : "Bật chế độ dịu mắt (ADHD Friendly)"}
+          >
+            <Eye size={18} />
+          </button>
+
+          <button
+            onClick={() => {
+              setIsChatOpen((v) => !v);
+              if (!isChatOpen) setIsSoundscapeOpen(false);
+            }}
+            className={cn(
+              "p-2 rounded-lg transition-colors",
+              isChatOpen
+                ? "text-indigo-400 bg-indigo-950/40"
+                : "text-neutral-500 hover:text-neutral-300"
+            )}
+            title="Chat phòng"
           >
             <MessageSquare size={18} />
           </button>
 
+          {room.archetype === "SANDBOX_TEST" && (
+            <button
+              onClick={() => setShowDiagnosticHUD((v) => !v)}
+              className={cn(
+                "p-2 rounded-lg transition-colors",
+                showDiagnosticHUD
+                  ? "text-orange-400 bg-orange-950/40"
+                  : "text-neutral-500 hover:text-orange-400"
+              )}
+              title="Bảng chẩn đoán Sandbox (HUD)"
+            >
+              <FlaskConical size={18} />
+            </button>
+          )}
+
           <button
             onClick={() => setIsFullscreen((v) => !v)}
             className="p-2 text-neutral-500 hover:text-neutral-300 transition-colors"
-            title="Toàn màn hình (F)"
+            title="Toàn màn hình (phím F)"
           >
             <Maximize2 size={18} />
           </button>
@@ -211,16 +268,28 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
         </div>
       </div>
 
-      {/* Main content: Video Grid + optional Chat panel */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* Main content: Video Grid + optional Drawers & Diagnostic HUD */}
+      <div className="flex flex-1 overflow-hidden relative">
         <div className="flex-1 overflow-hidden">
           <StudyVideoGrid
             serverUrl={livekitUrl!}
             token={livekitToken}
             roomArchetype={room.archetype}
+            isSensoryFriendly={isSensoryFriendly}
             onDisconnect={handleLeaveRoom}
           />
         </div>
+
+        {showDiagnosticHUD && (
+          <DiagnosticHUD
+            roomSlug={room.slug}
+            onClose={() => setShowDiagnosticHUD(false)}
+          />
+        )}
+
+        {isSoundscapeOpen && (
+          <SoundscapeMixer onClose={() => setIsSoundscapeOpen(false)} />
+        )}
 
         {isChatOpen && (
           <ChatDrawer

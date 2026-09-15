@@ -7,7 +7,7 @@ import { api } from "@/convex/_generated/api";
 import { useRouter, usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { Separator } from "@radix-ui/react-separator";
-import { Plus, Compass } from "lucide-react";
+import { Plus, Compass, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CreateServerModal } from "./CreateServerModal";
 
@@ -30,6 +30,20 @@ export function ServerSidebar() {
         title="Khám phá"
       >
         <Compass size={22} className="text-neutral-100" />
+      </button>
+
+      {/* Profile & Streak icon */}
+      <button
+        onClick={() => router.push("/profile")}
+        className={cn(
+          "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 hover:rounded-xl",
+          pathname === "/profile"
+            ? "bg-amber-600 rounded-xl"
+            : "bg-neutral-800 hover:bg-amber-500/30 text-amber-400"
+        )}
+        title="Hồ sơ & Chuỗi học tập"
+      >
+        <Flame size={22} />
       </button>
 
       <Separator className="w-8 h-px bg-neutral-700 my-1" />

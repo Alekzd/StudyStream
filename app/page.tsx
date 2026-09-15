@@ -1,69 +1,138 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { AppIcon } from "@/components/ui/Icon";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { BannerBackground } from "@/components/ui/BannerBackground";
+import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@clerk/nextjs";
+
+export default function LandingPage() {
+  const { t, language } = useLanguage();
+  const { isSignedIn } = useAuth();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <BannerBackground opacity={0.35}>
+      <div className="flex flex-col min-h-dvh w-full select-none">
+        {/* Navigation Bar */}
+        <header className="w-full border-b border-espresso-700/80 bg-espresso-950/70 backdrop-blur-md sticky top-0 z-30">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-espresso-900 border border-espresso-700 flex items-center justify-center text-brass-500 shadow-sm">
+                <AppIcon name="coffee" size={20} />
+              </div>
+              <span className="font-mono font-bold text-base sm:text-lg text-crema-100 tracking-tight">
+                StudyStream <span className="text-brass-500 text-xs font-normal">OS</span>
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <LanguageToggle />
+              <Link
+                href={isSignedIn ? "/explore" : "/sign-in"}
+                className="px-4 py-1.5 bg-brass-500 hover:bg-brass-600 text-espresso-950 text-xs font-mono font-bold rounded-xl transition-all shadow-sm"
+              >
+                {isSignedIn ? (language === "vi" ? "Vào Trạm" : "Launch App") : (language === "vi" ? "Đăng nhập" : "Sign In")}
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        {/* Hero Section */}
+        <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-12 sm:py-20 text-center max-w-4xl mx-auto">
+          {/* Atelier Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-espresso-900/90 border border-espresso-700/80 text-brass-400 text-xs font-mono mb-6 shadow-sm">
+            <AppIcon name="sparkles" size={14} />
+            <span>The Midnight Espresso Atelier</span>
+          </div>
+
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold font-sans text-crema-100 tracking-tight leading-tight max-w-3xl mb-5">
+            {language === "vi" ? (
+              <>
+                Không gian làm việc sâu <br />
+                <span className="text-brass-400">cùng đĩa than Jazz & cà phê.</span>
+              </>
+            ) : (
+              <>
+                Deep focus sanctuary for <br />
+                <span className="text-brass-400">coffeeholics & workaholics.</span>
+              </>
+            )}
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="text-sm sm:text-lg text-crema-400 max-w-2xl leading-relaxed mb-8 sm:mb-10 font-sans">
+            {t("brand_tagline")}
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+          {/* Action CTAs */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
+            <Link
+              href={isSignedIn ? "/explore" : "/sign-in"}
+              className="w-full sm:w-auto px-8 py-3.5 bg-bourbon-500 hover:bg-bourbon-600 text-crema-50 font-bold rounded-xl text-sm sm:text-base font-mono transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+            >
+              <AppIcon name="coffee" size={18} />
+              <span>{language === "vi" ? "Vào Trạm Làm Việc Ngay" : "Enter Workstation"}</span>
+            </Link>
+            <Link
+              href="/explore"
+              className="w-full sm:w-auto px-6 py-3.5 bg-espresso-900 hover:bg-espresso-800 text-crema-200 border border-espresso-700 hover:border-brass-500/40 font-semibold rounded-xl text-sm sm:text-base font-mono transition-all flex items-center justify-center gap-2"
+            >
+              <AppIcon name="compass" size={18} />
+              <span>{t("nav_explore")}</span>
+            </Link>
+          </div>
+
+          {/* Core Pillars Feature Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-16 sm:mt-24 w-full text-left">
+            <div className="p-5 rounded-2xl bg-espresso-900/80 border border-espresso-700/80 backdrop-blur-sm">
+              <div className="w-10 h-10 rounded-xl bg-brass-500/10 border border-brass-500/30 flex items-center justify-center text-brass-400 mb-3.5">
+                <AppIcon name="jazz" size={22} />
+              </div>
+              <h3 className="font-bold text-sm text-crema-100 mb-1.5">
+                {language === "vi" ? "Espresso & Vinyl Jazz" : "Espresso & Vinyl Jazz"}
+              </h3>
+              <p className="text-xs text-crema-400 leading-relaxed">
+                {language === "vi"
+                  ? "Âm thanh máy nén cà phê, tiếng kim đĩa than và phím cơ tactile loại bỏ hoàn toàn lofi buồn ngủ."
+                  : "Authentic coffee extraction, vinyl crackle and mechanical keystrokes replacing sleepy lofi."}
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-espresso-900/80 border border-espresso-700/80 backdrop-blur-sm">
+              <div className="w-10 h-10 rounded-xl bg-bourbon-500/10 border border-bourbon-500/30 flex items-center justify-center text-bourbon-500 mb-3.5">
+                <AppIcon name="clock" size={22} />
+              </div>
+              <h3 className="font-bold text-sm text-crema-100 mb-1.5">
+                {language === "vi" ? "Chronograph Pomodoro" : "Chronograph Pomodoro"}
+              </h3>
+              <p className="text-xs text-crema-400 leading-relaxed">
+                {language === "vi"
+                  ? "Bộ đếm nhịp giây chuẩn xác như đồng hồ cơ Thụy Sĩ, đồng bộ theo thời gian thực với toàn phòng."
+                  : "Server-authoritative mechanical cadence clock keeping the entire desk in deep flow."}
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-espresso-900/80 border border-espresso-700/80 backdrop-blur-sm">
+              <div className="w-10 h-10 rounded-xl bg-patina-500/10 border border-patina-500/30 flex items-center justify-center text-patina-400 mb-3.5">
+                <AppIcon name="videoOn" size={22} />
+              </div>
+              <h3 className="font-bold text-sm text-crema-100 mb-1.5">
+                {language === "vi" ? "Body Doubling Tối Giản" : "Zero-Distraction Video"}
+              </h3>
+              <p className="text-xs text-crema-400 leading-relaxed">
+                {language === "vi"
+                  ? "Khung hình camera thích ứng LiveKit, triệt tiêu xao nhãng để bạn luôn thấy đồng đội đang nỗ lực."
+                  : "LiveKit adaptive stream grid for peer accountability without distracting UI clutter."}
+              </p>
+            </div>
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="w-full border-t border-espresso-700/80 py-6 px-4 text-center text-xs font-mono text-crema-600">
+          <p>StudyStream OS — Designed for Deep Workers & Coffeeholics.</p>
+        </footer>
+      </div>
+    </BannerBackground>
   );
 }

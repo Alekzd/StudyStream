@@ -1,66 +1,60 @@
 // lib/soundscape.ts
-// StudyStream OS — Ambient Soundscape Engine (Howler.js + Web Audio API synthesis)
-// Reference: 04_CSW_Core_Features_and_BodyDoubling.md
+// StudyStream OS — Ambient Soundscape Engine (Howler.js)
+// Redesigned for: The Midnight Espresso Atelier (Espresso extraction, Vinyl Jazz, Tactile Keys)
 
 import { Howl } from "howler";
 
 export interface SoundTrack {
   id: string;
-  name: string;
-  icon: string;
-  category: "nature" | "ambient" | "music";
+  nameKey: string;
+  iconName: string;
+  category: "coffee" | "jazz" | "ambient" | "nature";
   src: string;
   defaultVolume: number;
 }
 
 export const SOUND_TRACKS: SoundTrack[] = [
   {
+    id: "jazz",
+    nameKey: "sound_jazz",
+    iconName: "jazz",
+    category: "jazz",
+    // Deep vinyl hum and vintage acoustic warmth
+    src: "https://actions.google.com/sounds/v1/science_fiction/deep_hum.ogg",
+    defaultVolume: 0.35,
+  },
+  {
+    id: "espresso",
+    nameKey: "sound_espresso",
+    iconName: "coffee",
+    category: "coffee",
+    // Atmospheric espresso bar ambient sound
+    src: "https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg",
+    defaultVolume: 0.3,
+  },
+  {
     id: "rain",
-    name: "Mưa Rào Ban Đêm",
-    icon: "🌧️",
+    nameKey: "sound_rain",
+    iconName: "soundwave",
     category: "nature",
     src: "https://actions.google.com/sounds/v1/weather/rain_heavy.ogg",
     defaultVolume: 0.4,
   },
   {
-    id: "cafe",
-    name: "Quán Cà Phê Nhộn Nhịp",
-    icon: "☕",
+    id: "fireplace",
+    nameKey: "sound_fireplace",
+    iconName: "flame",
     category: "ambient",
-    src: "https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg",
+    src: "https://actions.google.com/sounds/v1/household/fireplace_crackling.ogg",
     defaultVolume: 0.25,
   },
   {
-    id: "ocean",
-    name: "Sóng Biển Vỗ Bờ",
-    icon: "🌊",
-    category: "nature",
-    src: "https://actions.google.com/sounds/v1/water/waves_crashing_on_rocks_2.ogg",
-    defaultVolume: 0.35,
-  },
-  {
-    id: "fireplace",
-    name: "Lò Sưởi Mùa Đông",
-    icon: "🔥",
-    category: "ambient",
-    src: "https://actions.google.com/sounds/v1/household/fireplace_crackling.ogg",
-    defaultVolume: 0.3,
-  },
-  {
     id: "fan",
-    name: "Tiếng Quạt Gió (White Noise)",
-    icon: "💨",
+    nameKey: "sound_breeze",
+    iconName: "soundwave",
     category: "ambient",
     src: "https://actions.google.com/sounds/v1/household/electric_fan.ogg",
     defaultVolume: 0.2,
-  },
-  {
-    id: "lofi",
-    name: "Lofi Chillhop Beats",
-    icon: "🎵",
-    category: "music",
-    src: "https://actions.google.com/sounds/v1/science_fiction/deep_hum.ogg",
-    defaultVolume: 0.5,
   },
 ];
 
@@ -85,9 +79,7 @@ class SoundscapeManager {
           this.volumes.set(id, Number(vol));
         });
       }
-    } catch {
-      // Ignore storage errors
-    }
+    } catch {}
   }
 
   private saveStoredVolumes() {
@@ -98,16 +90,14 @@ class SoundscapeManager {
         obj[id] = vol;
       });
       localStorage.setItem("studystream_soundscape_volumes", JSON.stringify(obj));
-    } catch {
-      // Ignore storage errors
-    }
+    } catch {}
   }
 
   public getVolume(id: string): number {
     if (this.volumes.has(id)) {
       return this.volumes.get(id)!;
     }
-    return 0; // Default off until user turns it up
+    return 0;
   }
 
   public setVolume(id: string, volume: number) {
@@ -122,7 +112,7 @@ class SoundscapeManager {
         howl = new Howl({
           src: [track.src],
           loop: true,
-          html5: true, // Saves browser memory and supports streaming
+          html5: true,
           volume: this.isMuted ? 0 : clamped,
         });
         this.howls.set(id, howl);

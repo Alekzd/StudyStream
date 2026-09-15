@@ -1,17 +1,15 @@
 "use client";
-// components/pomodoro/PomodoroTimer.tsx
-// StudyStream OS — Circular Pomodoro Timer UI Component
 
 import { useSynchronizedPomodoro } from "@/hooks/useSynchronizedPomodoro";
 import { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { Play, Pause, SkipForward, RotateCcw } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { AppIcon } from "@/components/ui/Icon";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface PomodoroTimerProps {
   roomId: Id<"rooms">;
   serverId: Id<"servers">;
-  canControl: boolean; // Only owner/moderator can control
+  canControl: boolean;
   compact?: boolean;
 }
 
@@ -21,6 +19,7 @@ export function PomodoroTimer({
   canControl,
   compact = false,
 }: PomodoroTimerProps) {
+  const { t } = useLanguage();
   const {
     displayTime,
     progressPercent,
@@ -35,7 +34,6 @@ export function PomodoroTimer({
     roomId,
     serverId,
     onWorkComplete: () => {
-      // Play Tibetan singing bowl sound
       const audio = new Audio("/sounds/bowl.mp3");
       audio.play().catch(() => {});
     },
@@ -49,100 +47,97 @@ export function PomodoroTimer({
   const isWork = status === "WORK";
   const isBreak = status === "BREAK";
 
-  // SVG circle progress
-  const RADIUS = compact ? 28 : 52;
+  // SVG Chronograph circle geometry
+  const RADIUS = compact ? 26 : 52;
   const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
   const strokeDashoffset = CIRCUMFERENCE - (progressPercent / 100) * CIRCUMFERENCE;
 
+  // Status color mappings (Workaholic Bourbon Amber for Sprint, Patina Green for Break, Brass for Idle)
+  const strokeColor = isWork ? "#e07a38" : isBreak ? "#4e7a66" : "#382e27";
+  const textColor = isWork ? "text-bourbon-500" : isBreak ? "text-patina-400" : "text-crema-600";
+  const statusLabel = isWork ? t("pomo_work") : isBreak ? t("pomo_break") : status === "PAUSED" ? t("pomo_paused") : t("pomo_idle");
+
   if (compact) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-neutral-900/80 rounded-full border border-neutral-700">
-        <div className="relative w-8 h-8">
-          <svg className="w-8 h-8 -rotate-90" viewBox="0 0 64 64">
-            <circle cx="32" cy="32" r="28" fill="none" stroke="#27272a" strokeWidth="4" />
+      <div className="flex items-center gap-2 px-2.5 py-1 bg-espresso-900/90 rounded-lg border border-espresso-700/80 shadow-sm select-none">
+        <div className="relative w-6 h-6 shrink-0">
+          <svg className="w-6 h-6 -rotate-90" viewBox="0 0 60 60">
+            <circle cx="30" cy="30" r="26" fill="none" stroke="#221c17" strokeWidth="5" />
             <circle
-              cx="32" cy="32" r="28" fill="none"
-              stroke={isWork ? "#6366f1" : isBreak ? "#10b981" : "#404040"}
-              strokeWidth="4"
+              cx="30" cy="30" r="26" fill="none"
+              stroke={strokeColor}
+              strokeWidth="5"
               strokeDasharray={CIRCUMFERENCE}
               strokeDashoffset={strokeDashoffset}
               strokeLinecap="round"
-              style={{ transition: "stroke-dashoffset 1s linear" }}
+              style={{ transition: "stroke-dashoffset 1s steps(60, end)" }}
             />
           </svg>
         </div>
-        <span className={cn(
-          "text-sm font-mono font-bold",
-          isWork ? "text-indigo-400" : isBreak ? "text-green-400" : "text-neutral-500"
-        )}>
+        <span className={cn("text-xs md:text-sm font-mono font-bold tabular-nums tracking-tight", textColor)}>
           {displayTime}
         </span>
-        {status !== "IDLE" && (
-          <span className="text-xs text-neutral-500">
-            {isWork ? "WORK" : isBreak ? "BREAK" : "PAUSED"}
-          </span>
-        )}
+        <span className="hidden sm:inline text-[10px] font-mono tracking-wider font-semibold text-crema-600">
+          {statusLabel}
+        </span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center gap-4 p-6">
-      {/* Cycle indicator */}
-      <div className="flex items-center gap-1">
+    <div className="flex flex-col items-center gap-4 p-5 bg-espresso-900 border border-espresso-700 rounded-2xl select-none">
+      {/* Cycle Indicator */}
+      <div className="flex items-center gap-1.5">
         {Array.from({ length: Math.max(cycleNumber, 1) }).map((_, i) => (
           <div
             key={i}
             className={cn(
-              "w-2 h-2 rounded-full",
-              i < cycleNumber ? "bg-indigo-500" : "bg-neutral-700"
+              "w-2 h-2 rounded-full transition-colors",
+              i < cycleNumber ? "bg-brass-500 shadow-sm" : "bg-espresso-700"
             )}
           />
         ))}
-        <span className="text-xs text-neutral-500 ml-2">Chu kỳ {cycleNumber}</span>
+        <span className="text-xs font-mono text-crema-400 ml-2">
+          {t("pomo_cycle")} #{cycleNumber}
+        </span>
       </div>
 
-      {/* Circular progress ring */}
+      {/* Chronograph Dial */}
       <div className="relative w-36 h-36">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-          {/* Background track */}
-          <circle cx="60" cy="60" r="52" fill="none" stroke="#27272a" strokeWidth="6" />
-          {/* Progress arc */}
+          <circle cx="60" cy="60" r="52" fill="none" stroke="#221c17" strokeWidth="6" />
           <circle
             cx="60" cy="60" r="52" fill="none"
-            stroke={isWork ? "#6366f1" : isBreak ? "#10b981" : "#525252"}
+            stroke={strokeColor}
             strokeWidth="6"
             strokeDasharray={CIRCUMFERENCE}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            style={{ transition: "stroke-dashoffset 1s linear" }}
+            style={{ transition: "stroke-dashoffset 1s steps(60, end)" }}
           />
         </svg>
 
-        {/* Time display */}
+        {/* Center Chrono Display */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className={cn(
-            "text-2xl font-mono font-bold",
-            isWork ? "text-indigo-400" : isBreak ? "text-green-400" : "text-neutral-500"
-          )}>
+          <span className={cn("text-2xl font-mono font-bold tabular-nums tracking-tight", textColor)}>
             {displayTime}
           </span>
-          <span className="text-xs text-neutral-500 mt-0.5">
-            {isWork ? "WORK" : isBreak ? "BREAK" : status === "PAUSED" ? "PAUSED" : "IDLE"}
+          <span className="text-[10px] font-mono font-bold tracking-widest text-crema-600 mt-1 uppercase">
+            {statusLabel}
           </span>
         </div>
       </div>
 
-      {/* Controls (only shown to owner/moderator) */}
+      {/* Chronograph Controls */}
       {canControl && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pt-1">
           {status === "IDLE" && (
             <button
               onClick={() => startWork()}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-bourbon-500 hover:bg-bourbon-600 text-crema-50 text-xs font-mono font-bold rounded-xl transition-all shadow-md active:scale-95"
             >
-              <Play size={14} />
-              Bắt Đầu (50min)
+              <AppIcon name="play" size={14} />
+              {t("pomo_start_sprint")}
             </button>
           )}
 
@@ -150,17 +145,17 @@ export function PomodoroTimer({
             <>
               <button
                 onClick={() => pause()}
-                className="p-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg transition-colors"
-                title="Tạm dừng"
+                className="p-2.5 bg-espresso-800 hover:bg-espresso-750 text-crema-200 border border-espresso-700 rounded-xl transition-colors active:scale-95"
+                title={t("pomo_pause")}
               >
-                <Pause size={16} />
+                <AppIcon name="pause" size={16} />
               </button>
               <button
                 onClick={() => skip()}
-                className="p-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg transition-colors"
-                title="Bỏ qua pha hiện tại"
+                className="p-2.5 bg-espresso-800 hover:bg-espresso-750 text-crema-200 border border-espresso-700 rounded-xl transition-colors active:scale-95"
+                title={t("pomo_skip")}
               >
-                <SkipForward size={16} />
+                <AppIcon name="skip" size={16} />
               </button>
             </>
           )}
@@ -168,20 +163,20 @@ export function PomodoroTimer({
           {status === "PAUSED" && (
             <button
               onClick={() => startWork()}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-brass-500 hover:bg-brass-600 text-espresso-950 text-xs font-mono font-bold rounded-xl transition-all shadow-md active:scale-95"
             >
-              <Play size={14} />
-              Tiếp tục
+              <AppIcon name="play" size={14} />
+              {t("pomo_resume")}
             </button>
           )}
 
           {status !== "IDLE" && (
             <button
               onClick={() => reset()}
-              className="p-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg transition-colors"
-              title="Đặt lại"
+              className="p-2.5 bg-espresso-800 hover:bg-espresso-750 text-crema-400 border border-espresso-700 rounded-xl transition-colors active:scale-95"
+              title={t("pomo_reset")}
             >
-              <RotateCcw size={14} />
+              <AppIcon name="restart" size={16} />
             </button>
           )}
         </div>

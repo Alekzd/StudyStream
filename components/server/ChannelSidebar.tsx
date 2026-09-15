@@ -1,14 +1,13 @@
 "use client";
-// components/server/ChannelSidebar.tsx
-// StudyStream OS — Room/Channel list sidebar (Discord-style)
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter, usePathname } from "next/navigation";
 import { cn, getArchetypeLabel } from "@/lib/utils";
-import { Users, Lock, Plus, Settings } from "lucide-react";
+import { AppIcon } from "@/components/ui/Icon";
 import { CreateRoomModal } from "./CreateRoomModal";
 import { Id } from "@/convex/_generated/dataModel";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface ChannelSidebarProps {
   serverId: string;
@@ -26,47 +25,56 @@ export function ChannelSidebar({ serverId }: ChannelSidebarProps) {
   });
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   if (!server) {
     return (
-      <div className="w-60 bg-neutral-900 border-r border-neutral-800 p-4">
-        <div className="h-6 w-3/4 bg-neutral-800 rounded animate-pulse mb-4" />
+      <div className="w-56 md:w-60 bg-espresso-900 border-r border-espresso-700/80 p-4 shrink-0 flex flex-col gap-3">
+        <div className="h-6 w-3/4 bg-espresso-800 rounded animate-pulse" />
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-8 bg-neutral-800 rounded mb-2 animate-pulse" />
+          <div key={i} className="h-8 bg-espresso-850 rounded animate-pulse" />
         ))}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col w-60 bg-neutral-900 border-r border-neutral-800">
-      {/* Server header */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-neutral-800">
-        <h2 className="font-bold text-neutral-100 truncate text-sm">{server.name}</h2>
-        <button className="text-neutral-500 hover:text-neutral-300 transition-colors">
-          <Settings size={16} />
+    <div className="flex flex-col w-56 md:w-60 bg-espresso-900 border-r border-espresso-700/80 shrink-0 h-full overflow-hidden select-none">
+      {/* Server Header */}
+      <div className="flex items-center justify-between px-3.5 py-3 border-b border-espresso-700/80 bg-espresso-900/90">
+        <h2 className="font-bold text-crema-100 truncate text-sm font-sans tracking-tight">
+          {server.name}
+        </h2>
+        <button
+          className="text-crema-600 hover:text-brass-400 p-1 rounded-md transition-colors"
+          title={t("nav_settings")}
+        >
+          <AppIcon name="settings" size={16} />
         </button>
       </div>
 
-      {/* Rooms list grouped by category */}
-      <div className="flex-1 overflow-y-auto py-2">
+      {/* Rooms List Grouped by Category */}
+      <div className="flex-1 overflow-y-auto p-2 space-y-3">
         {categories?.map((category) => {
           const categoryRooms = rooms?.filter(
             (r) => r.categoryId === category._id
           );
 
           return (
-            <div key={category._id} className="mb-4">
-              <div className="flex items-center justify-between px-3 py-1.5">
-                <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+            <div key={category._id} className="space-y-1">
+              <div className="flex items-center justify-between px-2 py-1">
+                <span className="text-[11px] font-mono font-semibold text-crema-600 uppercase tracking-wider">
                   {category.name}
                 </span>
                 <CreateRoomModal
                   serverId={serverId as Id<"servers">}
                   categoryId={category._id}
                 >
-                  <button className="text-neutral-600 hover:text-neutral-300 transition-colors">
-                    <Plus size={14} />
+                  <button
+                    className="text-crema-600 hover:text-brass-400 transition-colors p-0.5"
+                    title={t("nav_create_server")}
+                  >
+                    <AppIcon name="plus" size={13} />
                   </button>
                 </CreateRoomModal>
               </div>
@@ -81,20 +89,21 @@ export function ChannelSidebar({ serverId }: ChannelSidebarProps) {
                       router.push(`/servers/${serverId}/rooms/${room._id}`)
                     }
                     className={cn(
-                      "flex items-center gap-2 w-full px-3 py-1.5 mx-1 rounded-md text-sm transition-colors",
+                      "flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-xs md:text-sm transition-all duration-150 text-left",
                       isActive
-                        ? "bg-neutral-700 text-neutral-100"
-                        : "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+                        ? "bg-espresso-800 text-brass-300 font-semibold border border-espresso-700 shadow-sm"
+                        : "text-crema-400 hover:bg-espresso-850 hover:text-crema-200"
                     )}
                   >
-                    {room.isLocked && <Lock size={12} className="shrink-0" />}
-                    <span className="truncate flex-1 text-left">
-                      {getArchetypeLabel(room.archetype).split(" ")[0]}{" "}
-                      {room.name}
+                    {room.isLocked && (
+                      <AppIcon name="lock" size={12} className="text-crema-600 shrink-0" />
+                    )}
+                    <span className="truncate flex-1">
+                      {getArchetypeLabel(room.archetype).split(" ")[0]} {room.name}
                     </span>
                     {room.participantCount > 0 && (
-                      <span className="flex items-center gap-1 text-xs text-neutral-500">
-                        <Users size={11} />
+                      <span className="flex items-center gap-1 text-[11px] text-patina-400 font-mono shrink-0">
+                        <AppIcon name="users" size={11} />
                         {room.participantCount}
                       </span>
                     )}
@@ -105,7 +114,7 @@ export function ChannelSidebar({ serverId }: ChannelSidebarProps) {
           );
         })}
 
-        {/* Uncategorized rooms */}
+        {/* Uncategorized Rooms */}
         {rooms
           ?.filter((r) => !r.categoryId)
           .map((room) => {
@@ -117,13 +126,13 @@ export function ChannelSidebar({ serverId }: ChannelSidebarProps) {
                   router.push(`/servers/${serverId}/rooms/${room._id}`)
                 }
                 className={cn(
-                  "flex items-center gap-2 w-full px-3 py-1.5 mx-1 rounded-md text-sm transition-colors",
+                  "flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-xs md:text-sm transition-all duration-150 text-left",
                   isActive
-                    ? "bg-neutral-700 text-neutral-100"
-                    : "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+                    ? "bg-espresso-800 text-brass-300 font-semibold border border-espresso-700 shadow-sm"
+                    : "text-crema-400 hover:bg-espresso-850 hover:text-crema-200"
                 )}
               >
-                <span className="truncate flex-1 text-left">
+                <span className="truncate flex-1">
                   {getArchetypeLabel(room.archetype).split(" ")[0]} {room.name}
                 </span>
               </button>

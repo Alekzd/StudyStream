@@ -1,20 +1,19 @@
 "use client";
-// components/server/CreateRoomModal.tsx
-// StudyStream OS — Modal for creating a new study room with archetype selection
 
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { cn, getArchetypeLabel } from "@/lib/utils";
-import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { AppIcon } from "@/components/ui/Icon";
+import { useLanguage } from "@/context/LanguageContext";
 
 const ARCHETYPES = [
   { value: "SILENT_FOCUS", label: "🤫 Im Lặng Tuyệt Đối", desc: "Camera on, micro tắt cưỡng chế. Body doubling thuần túy." },
   { value: "CAM_ACCOUNTABILITY", label: "📹 Cam-On Accountability", desc: "Bắt buộc bật webcam. Tắt 3 phút tự chuyển sang Spectator." },
-  { value: "SYNC_POMODORO", label: "⏱️ Pomodoro Đồng Bộ", desc: "Cả phòng cùng học, cùng nghỉ theo đồng hồ máy chủ." },
-  { value: "AMBIENT_LOFI", label: "☕ Ambient Cafe/Lofi", desc: "Âm thanh môi trường chạy sẵn. Không gian thư giãn." },
-  { value: "PAIR_SCREENSHARE", label: "💻 Pair Code & Screenshare", desc: "Chia sẻ màn hình 1080p cho cặp lập trình / bài tập nhóm." },
+  { value: "SYNC_POMODORO", label: "⏱️ Pomodoro Đồng Bộ", desc: "Cả phòng cùng làm việc, cùng nghỉ theo đồng hồ máy chủ." },
+  { value: "AMBIENT_LOFI", label: "☕ Espresso & Vinyl Jazz", desc: "Âm thanh máy pha cà phê, đĩa than jazz xoay nhẹ. Tập trung sâu." },
+  { value: "PAIR_SCREENSHARE", label: "💻 Pair Work & Screenshare", desc: "Chia sẻ màn hình 1080p cho cặp lập trình / bài tập nhóm." },
   { value: "SANDBOX_TEST", label: "🧪 Sandbox Testing", desc: "Test camera/mic/kết nối. Không tính vào streak." },
 ] as const;
 
@@ -35,6 +34,7 @@ export function CreateRoomModal({ serverId, categoryId, children }: CreateRoomMo
   const [error, setError] = useState("");
 
   const createRoom = useMutation(api.rooms.createRoom);
+  const { language } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,103 +69,94 @@ export function CreateRoomModal({ serverId, categoryId, children }: CreateRoomMo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70" onClick={() => setOpen(false)} />
-      <div className="relative bg-neutral-900 rounded-2xl p-6 w-full max-w-lg border border-neutral-700 shadow-2xl max-h-[90vh] overflow-y-auto">
-        {/* Close */}
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setOpen(false)} />
+      <div className="relative bg-espresso-900 rounded-2xl p-6 w-full max-w-lg border border-espresso-700 shadow-2xl max-h-[90vh] overflow-y-auto z-10 select-none">
+        {/* Close button */}
         <button
           onClick={() => setOpen(false)}
-          className="absolute top-4 right-4 text-neutral-500 hover:text-neutral-300"
+          className="absolute top-4 right-4 text-crema-600 hover:text-crema-200 transition-colors p-1"
         >
-          <X size={20} />
+          <AppIcon name="close" size={18} />
         </button>
 
-        <h2 className="text-xl font-bold text-neutral-100 mb-1">Tạo Phòng Học Mới</h2>
-        <p className="text-neutral-400 text-sm mb-6">Chọn loại phòng phù hợp với mục tiêu học tập.</p>
+        <h2 className="text-xl font-bold text-crema-100 mb-1 font-sans">
+          {language === "vi" ? "Tạo Phòng Làm Việc Mới" : "Create New Workstation"}
+        </h2>
+        <p className="text-crema-400 text-xs sm:text-sm mb-6 leading-relaxed">
+          {language === "vi"
+            ? "Chọn phong cách phòng phù hợp với mục tiêu làm việc của nhóm."
+            : "Select the discipline archetype best suited for your shift."}
+        </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {/* Room name */}
           <div>
-            <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5 block">
-              Tên Phòng *
+            <label className="text-[11px] font-mono font-semibold text-crema-600 uppercase tracking-wider mb-1.5 block">
+              {language === "vi" ? "Tên Phòng *" : "Room Name *"}
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ví dụ: Thư Viện Đêm Khuya"
+              placeholder={language === "vi" ? "Ví dụ: Quầy Bar Espresso #1" : "e.g. Espresso Bar #1"}
               maxLength={80}
-              className="w-full px-3 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-indigo-500 text-sm"
+              className="w-full px-3.5 py-2.5 bg-espresso-850 border border-espresso-700 rounded-xl text-crema-100 placeholder:text-crema-600 focus:outline-none focus:border-brass-500/60 text-sm font-sans"
               required
             />
           </div>
 
-          {/* Archetype selection */}
           <div>
-            <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2 block">
-              Loại Phòng
+            <label className="text-[11px] font-mono font-semibold text-crema-600 uppercase tracking-wider mb-2 block">
+              {language === "vi" ? "Định Dạng Kỷ Luật (Archetype)" : "Discipline Archetype"}
             </label>
-            <div className="grid grid-cols-1 gap-2">
-              {ARCHETYPES.map((a) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {ARCHETYPES.map((arch) => (
                 <button
-                  key={a.value}
+                  key={arch.value}
                   type="button"
-                  onClick={() => setArchetype(a.value)}
+                  onClick={() => setArchetype(arch.value)}
                   className={cn(
-                    "flex items-start gap-3 p-3 rounded-lg border text-left transition-colors",
-                    archetype === a.value
-                      ? "border-indigo-500 bg-indigo-950/40"
-                      : "border-neutral-700 bg-neutral-800 hover:border-neutral-600"
+                    "flex flex-col text-left p-3 rounded-xl border transition-all text-xs",
+                    archetype === arch.value
+                      ? "bg-espresso-800 border-brass-500/60 shadow-sm"
+                      : "bg-espresso-850/60 border-espresso-700/60 hover:bg-espresso-800/60"
                   )}
                 >
-                  <div className="flex-1">
-                    <p className={cn("font-medium text-sm", archetype === a.value ? "text-indigo-300" : "text-neutral-200")}>
-                      {a.label}
-                    </p>
-                    <p className="text-xs text-neutral-500 mt-0.5">{a.desc}</p>
-                  </div>
-                  <div className={cn(
-                    "w-4 h-4 rounded-full border-2 mt-0.5 shrink-0",
-                    archetype === a.value
-                      ? "border-indigo-500 bg-indigo-500"
-                      : "border-neutral-600"
-                  )} />
+                  <span className={cn(
+                    "font-bold mb-1",
+                    archetype === arch.value ? "text-brass-300" : "text-crema-200"
+                  )}>
+                    {arch.label}
+                  </span>
+                  <span className="text-[11px] text-crema-400 leading-snug">
+                    {arch.desc}
+                  </span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Max participants */}
-          <div>
-            <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1.5 block">
-              Số Người Tối Đa: {maxParticipants}
-            </label>
-            <input
-              type="range"
-              min={2}
-              max={50}
-              value={maxParticipants}
-              onChange={(e) => setMaxParticipants(Number(e.target.value))}
-              className="w-full accent-indigo-500"
-            />
-            <div className="flex justify-between text-xs text-neutral-600">
-              <span>2</span>
-              <span>50</span>
-            </div>
-          </div>
-
           {error && (
-            <p className="text-red-400 text-sm bg-red-950/30 px-3 py-2 rounded-lg">
+            <p className="text-bourbon-400 text-xs text-center font-mono">
               {error}
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={!name.trim() || loading}
-            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
-          >
-            {loading ? "Đang tạo..." : "✨ Tạo Phòng Học"}
-          </button>
+          <div className="flex justify-end gap-2 pt-2 border-t border-espresso-700/80">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="px-4 py-2.5 text-xs font-mono font-semibold text-crema-400 hover:text-crema-100 transition-colors"
+            >
+              {language === "vi" ? "Hủy" : "Cancel"}
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !name.trim()}
+              className="px-5 py-2.5 bg-brass-500 hover:bg-brass-600 disabled:opacity-50 text-espresso-950 text-xs font-mono font-bold rounded-xl transition-all shadow-md active:scale-95"
+            >
+              {loading ? (language === "vi" ? "Đang tạo..." : "Creating...") : (language === "vi" ? "Tạo Phòng" : "Create Room")}
+            </button>
+          </div>
         </form>
       </div>
     </div>

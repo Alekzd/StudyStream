@@ -1,11 +1,11 @@
 "use client";
-// components/server/ServerCard.tsx
-// StudyStream OS — Server card for the Explore page
 
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { AppIcon } from "@/components/ui/Icon";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface ServerCardProps {
   server: {
@@ -26,6 +26,7 @@ interface ServerCardProps {
 export function ServerCard({ server }: ServerCardProps) {
   const router = useRouter();
   const joinByCode = useMutation(api.servers.joinByCode);
+  const { t } = useLanguage();
 
   const handleJoin = async () => {
     try {
@@ -37,36 +38,44 @@ export function ServerCard({ server }: ServerCardProps) {
   };
 
   return (
-    <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 hover:border-neutral-600 transition-colors flex flex-col gap-3">
-      <div className="flex items-center gap-3">
+    <div className="bg-espresso-900 border border-espresso-700/80 rounded-2xl p-5 hover:border-brass-500/40 transition-all duration-200 flex flex-col justify-between gap-4 group shadow-sm select-none">
+      <div className="flex items-center gap-3.5">
         {server.iconUrl ? (
           <img
             src={server.iconUrl}
             alt={server.name}
-            className="w-12 h-12 rounded-xl object-cover"
+            className="w-12 h-12 rounded-xl object-cover shrink-0 border border-espresso-700"
           />
         ) : (
-          <div className="w-12 h-12 rounded-xl bg-indigo-900/50 border border-indigo-700/30 flex items-center justify-center text-xl font-bold text-indigo-400">
+          <div className="w-12 h-12 rounded-xl bg-espresso-800 border border-espresso-700 flex items-center justify-center font-mono font-bold text-lg text-brass-400 shrink-0 group-hover:border-brass-500/30 transition-colors">
             {server.name.charAt(0).toUpperCase()}
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-neutral-100 truncate">{server.name}</h3>
-          <p className="text-xs text-neutral-500">
-            ⏱️ {server.defaultPomodoroWork}/{server.defaultPomodoroBreak}min cycle
+          <h3 className="font-semibold text-crema-100 truncate text-sm sm:text-base group-hover:text-brass-300 transition-colors">
+            {server.name}
+          </h3>
+          <p className="text-[11px] font-mono text-crema-600 flex items-center gap-1.5 mt-0.5">
+            <AppIcon name="clock" size={12} className="text-brass-500" />
+            <span>
+              {server.defaultPomodoroWork}m / {server.defaultPomodoroBreak}m cycle
+            </span>
           </p>
         </div>
       </div>
 
       {server.description && (
-        <p className="text-sm text-neutral-400 line-clamp-2">{server.description}</p>
+        <p className="text-xs text-crema-400 line-clamp-2 leading-relaxed">
+          {server.description}
+        </p>
       )}
 
       <button
         onClick={handleJoin}
-        className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
+        className="w-full py-2.5 px-4 bg-espresso-800 hover:bg-brass-500 hover:text-espresso-950 text-crema-200 text-xs font-mono font-bold rounded-xl border border-espresso-700 hover:border-brass-500 transition-all duration-200 flex items-center justify-center gap-2"
       >
-        Tham Gia →
+        <span>{t("explore_join")}</span>
+        <AppIcon name="chevronRight" size={14} />
       </button>
     </div>
   );

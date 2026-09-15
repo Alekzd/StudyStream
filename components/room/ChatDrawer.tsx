@@ -1,13 +1,12 @@
 "use client";
-// components/room/ChatDrawer.tsx
-// StudyStream OS — Room text chat drawer
 
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { X, Send } from "lucide-react";
+import { AppIcon } from "@/components/ui/Icon";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface ChatDrawerProps {
   roomId: Id<"rooms">;
@@ -16,6 +15,7 @@ interface ChatDrawerProps {
 }
 
 export function ChatDrawer({ roomId, serverId, onClose }: ChatDrawerProps) {
+  const { t } = useLanguage();
   const [content, setContent] = useState("");
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -23,7 +23,6 @@ export function ChatDrawer({ roomId, serverId, onClose }: ChatDrawerProps) {
   const messages = useQuery(api.chat.getMessages, { roomId, limit: 100 });
   const sendMessage = useMutation(api.chat.sendMessage);
 
-  // Auto scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -48,27 +47,32 @@ export function ChatDrawer({ roomId, serverId, onClose }: ChatDrawerProps) {
   };
 
   return (
-    <div className="w-80 bg-neutral-900 border-l border-neutral-800 flex flex-col h-full z-20">
+    <div className="w-full sm:w-80 bg-espresso-900 border-l border-espresso-700/80 flex flex-col h-full z-20 shadow-2xl select-none">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800">
-        <h3 className="font-semibold text-neutral-200 text-sm">💬 Trò Chuyện Phòng</h3>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-espresso-700/80 bg-espresso-900">
+        <div className="flex items-center gap-2">
+          <AppIcon name="chat" size={18} className="text-brass-500" />
+          <h3 className="font-semibold text-crema-100 text-sm">
+            {t("chat_title")}
+          </h3>
+        </div>
         <button
           onClick={onClose}
-          className="text-neutral-500 hover:text-neutral-300 transition-colors p-1"
+          className="text-crema-600 hover:text-crema-200 transition-colors p-1"
         >
-          <X size={18} />
+          <AppIcon name="close" size={16} />
         </button>
       </div>
 
       {/* Messages List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages === undefined ? (
-          <div className="text-center text-neutral-500 text-xs py-8 animate-pulse">
-            Đang tải tin nhắn...
+          <div className="text-center text-crema-600 text-xs py-8 animate-pulse font-mono">
+            {t("room_loading")}
           </div>
         ) : messages.length === 0 ? (
-          <div className="text-center text-neutral-500 text-xs py-8">
-            Chưa có tin nhắn nào. Hãy gửi lời chào đến bạn học!
+          <div className="text-center text-crema-600 text-xs py-8 leading-relaxed">
+            {t("chat_empty")}
           </div>
         ) : (
           messages.map((msg) => (
@@ -76,21 +80,21 @@ export function ChatDrawer({ roomId, serverId, onClose }: ChatDrawerProps) {
               key={msg._id}
               className={cn(
                 "flex flex-col text-sm",
-                msg.isSystemNotice && "bg-neutral-800/60 p-2 rounded-lg border border-neutral-700/50"
+                msg.isSystemNotice && "bg-espresso-850 p-2.5 rounded-xl border border-espresso-700/80"
               )}
             >
               <div className="flex items-baseline gap-2 mb-0.5">
-                <span className="font-semibold text-xs text-indigo-400">
-                  {msg.sender?.name ?? "Bạn học"}
+                <span className="font-semibold text-xs text-brass-400">
+                  {msg.sender?.name ?? t("room_desk_mates")}
                 </span>
-                <span className="text-[10px] text-neutral-500">
+                <span className="text-[10px] font-mono text-crema-600">
                   {new Date(msg.createdAt).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
                 </span>
               </div>
-              <p className="text-neutral-300 break-words text-xs leading-relaxed">
+              <p className="text-crema-200 break-words text-xs leading-relaxed">
                 {msg.content}
               </p>
             </div>
@@ -99,22 +103,21 @@ export function ChatDrawer({ roomId, serverId, onClose }: ChatDrawerProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Box */}
-      <form onSubmit={handleSend} className="p-3 border-t border-neutral-800 flex gap-2">
+      {/* Input Form */}
+      <form onSubmit={handleSend} className="p-3 border-t border-espresso-700/80 bg-espresso-900/90 flex gap-2">
         <input
           type="text"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Nhập tin nhắn..."
-          maxLength={1000}
-          className="flex-1 px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 placeholder-neutral-500 text-xs focus:outline-none focus:border-indigo-500"
+          placeholder={t("chat_placeholder")}
+          className="flex-1 px-3 py-2 bg-espresso-850 border border-espresso-700 rounded-xl text-xs text-crema-100 placeholder:text-crema-600 focus:outline-none focus:border-brass-500/50"
         />
         <button
           type="submit"
           disabled={!content.trim() || isSending}
-          className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+          className="p-2 bg-brass-500 hover:bg-brass-600 disabled:opacity-40 text-espresso-950 font-bold rounded-xl transition-all shadow-sm shrink-0"
         >
-          <Send size={14} />
+          <AppIcon name="send" size={16} />
         </button>
       </form>
     </div>

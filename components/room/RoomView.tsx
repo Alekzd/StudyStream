@@ -1,7 +1,4 @@
 "use client";
-// components/room/RoomView.tsx
-// StudyStream OS — Main room orchestrator component
-// Handles token fetching, joining, and full room UI assembly
 
 import { useState, useEffect } from "react";
 import { useQuery, useAction, useMutation } from "convex/react";
@@ -14,7 +11,9 @@ import { ChatDrawer } from "./ChatDrawer";
 import { SoundscapeMixer } from "@/components/soundscape/SoundscapeMixer";
 import { DiagnosticHUD } from "./DiagnosticHUD";
 import { getArchetypeLabel, getArchetypeColor, cn } from "@/lib/utils";
-import { MessageSquare, Volume2, Maximize2, LogOut, Headphones, Eye, Sparkles, FlaskConical } from "lucide-react";
+import { AppIcon } from "@/components/ui/Icon";
+import { BannerBackground } from "@/components/ui/BannerBackground";
+import { useLanguage } from "@/context/LanguageContext";
 import { useRouter } from "next/navigation";
 
 interface RoomViewProps {
@@ -25,6 +24,7 @@ interface RoomViewProps {
 export function RoomView({ serverId, roomId }: RoomViewProps) {
   const { user } = useUser();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const room = useQuery(api.rooms.getRoomById, {
     roomId: roomId as Id<"rooms">,
@@ -59,14 +59,12 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
     setError(null);
 
     try {
-      // 1. Get LiveKit JWT from Convex action (keeps secret key server-side)
       const { token, serverUrl } = await getLiveKitToken({
         roomId: roomId as Id<"rooms">,
         roomSlug: room.slug,
         archetype: room.archetype,
       });
 
-      // 2. Record join event in Convex (for presence tracking)
       await joinRoom({
         roomId: roomId as Id<"rooms">,
         serverId: serverId as Id<"servers">,
@@ -77,7 +75,7 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
       setLivekitToken(token);
       setLivekitUrl(serverUrl);
     } catch (err: any) {
-      setError(err.message ?? "Không thể kết nối phòng học. Thử lại!");
+      setError(err.message ?? t("room_connect_error"));
     } finally {
       setIsJoining(false);
     }
@@ -92,12 +90,13 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
     router.push(`/servers/${serverId}`);
   };
 
-  // Fullscreen toggle with keyboard shortcut F
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "f" || e.key === "F") {
-        if ((e.target as HTMLElement).tagName !== "INPUT" &&
-          (e.target as HTMLElement).tagName !== "TEXTAREA") {
+        if (
+          (e.target as HTMLElement).tagName !== "INPUT" &&
+          (e.target as HTMLElement).tagName !== "TEXTAREA"
+        ) {
           setIsFullscreen((v) => !v);
         }
       }
@@ -108,8 +107,10 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
 
   if (!room || !server) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-pulse text-neutral-500">Đang tải phòng học...</div>
+      <div className="flex items-center justify-center h-full bg-espresso-950">
+        <div className="animate-pulse text-brass-500 font-mono text-sm">
+          {t("room_loading")}
+        </div>
       </div>
     );
   }
@@ -117,72 +118,80 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
   const archetypeColor = getArchetypeColor(room.archetype);
   const archetypeLabel = getArchetypeLabel(room.archetype);
 
-  // Pre-join screen
+  // Pre-join Screen (The Entrance to The Atelier)
   if (!livekitToken) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-6">
-        {/* Room info */}
-        <div className="text-center max-w-md">
-          <p className={cn("text-4xl mb-3", archetypeColor.replace("text-", ""))}>{archetypeLabel.split(" ")[0]}</p>
-          <h1 className="text-2xl font-bold text-neutral-100 mb-2">{room.name}</h1>
-          <p className={cn("text-sm font-medium", archetypeColor)}>{archetypeLabel}</p>
-
-          {room.archetype === "SILENT_FOCUS" && (
-            <p className="text-neutral-500 text-xs mt-3 bg-neutral-900 px-4 py-2 rounded-lg border border-neutral-800">
-              🔇 Phòng im lặng: Micro sẽ bị tắt cưỡng chế. Chỉ camera và chat.
-            </p>
-          )}
-        </div>
-
-        {error && (
-          <div className="px-4 py-3 bg-red-950/40 border border-red-800/50 rounded-lg text-red-400 text-sm max-w-sm text-center">
-            {error}
+      <BannerBackground opacity={0.4}>
+        <div className="flex flex-col items-center justify-center flex-1 h-full px-4 sm:px-8 py-8 gap-6 text-center select-none">
+          <div className="w-16 h-16 rounded-2xl bg-espresso-900 border border-espresso-700 flex items-center justify-center text-brass-500 shadow-xl">
+            <AppIcon name="coffee" size={32} />
           </div>
-        )}
 
-        {/* Enter button */}
-        <button
-          onClick={handleEnterRoom}
-          disabled={isJoining || !user}
-          className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors text-lg"
-        >
-          {isJoining ? "Đang kết nối..." : "📹 Vào Phòng Học"}
-        </button>
+          <div className="max-w-md">
+            <h1 className="text-2xl sm:text-3xl font-bold text-crema-100 mb-2 font-sans tracking-tight">
+              {room.name}
+            </h1>
+            <p className={cn("text-xs sm:text-sm font-mono font-semibold tracking-wider uppercase", archetypeColor)}>
+              {archetypeLabel}
+            </p>
 
-        <p className="text-neutral-600 text-xs">
-          Nhấn{" "}
-          <kbd className="px-1.5 py-0.5 bg-neutral-800 rounded text-neutral-400 font-mono">
-            F
-          </kbd>{" "}
-          để toàn màn hình sau khi vào phòng
-        </p>
-      </div>
+            {room.archetype === "SILENT_FOCUS" && (
+              <p className="text-crema-400 text-xs mt-3 bg-espresso-900/80 px-4 py-2 rounded-xl border border-espresso-700/80 leading-relaxed">
+                {t("room_silent_notice")}
+              </p>
+            )}
+          </div>
+
+          {error && (
+            <div className="px-4 py-2.5 bg-bourbon-700/30 border border-bourbon-500/50 rounded-xl text-bourbon-400 text-xs sm:text-sm max-w-sm text-center">
+              {error}
+            </div>
+          )}
+
+          <button
+            onClick={handleEnterRoom}
+            disabled={isJoining || !user}
+            className="flex items-center gap-2.5 px-6 sm:px-8 py-3 sm:py-3.5 bg-brass-500 hover:bg-brass-600 disabled:opacity-50 text-espresso-950 font-bold rounded-xl transition-all duration-200 text-sm sm:text-base shadow-lg active:scale-95"
+          >
+            <AppIcon name="videoOn" size={20} />
+            <span>{isJoining ? t("room_connecting") : t("room_enter")}</span>
+          </button>
+
+          <p className="text-crema-600 text-xs font-mono">
+            {t("room_fullscreen_hint")}
+          </p>
+        </div>
+      </BannerBackground>
     );
   }
 
-  // In-room view
+  // Active In-Room View
   return (
     <div
       className={cn(
-        "flex flex-col h-full bg-neutral-950 transition-all duration-300",
+        "flex flex-col h-full bg-espresso-950 transition-all duration-300 w-full overflow-hidden select-none",
         isFullscreen && "fixed inset-0 z-50"
       )}
     >
-      {/* Top bar */}
-      <div className={cn(
-        "flex items-center justify-between px-4 py-2 bg-neutral-900/80 border-b border-neutral-800 backdrop-blur-sm",
-        isFullscreen && "opacity-0 hover:opacity-100 transition-opacity"
-      )}>
-        <div className="flex items-center gap-3">
-          <span className={cn("text-sm font-medium", archetypeColor)}>
+      {/* Top Station Bar */}
+      <div
+        className={cn(
+          "flex items-center justify-between px-3 sm:px-4 py-2 bg-espresso-900/90 border-b border-espresso-700/80 backdrop-blur-md shrink-0 gap-2",
+          isFullscreen && "opacity-0 hover:opacity-100 transition-opacity"
+        )}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-mono text-xs text-brass-500 font-bold tracking-tight truncate hidden sm:inline">
             {archetypeLabel}
           </span>
-          <span className="text-neutral-600">·</span>
-          <span className="text-neutral-300 text-sm font-semibold">{room.name}</span>
+          <span className="text-espresso-700 hidden sm:inline">|</span>
+          <span className="text-crema-100 text-xs sm:text-sm font-semibold truncate">
+            {room.name}
+          </span>
         </div>
 
-        {/* Compact Pomodoro in header */}
-        <div className="flex items-center gap-2">
+        {/* Compact Pomodoro & Control Buttons */}
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <PomodoroTimer
             roomId={roomId as Id<"rooms">}
             serverId={serverId as Id<"servers">}
@@ -198,12 +207,12 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
             className={cn(
               "p-2 rounded-lg transition-colors",
               isSoundscapeOpen
-                ? "text-indigo-400 bg-indigo-950/40"
-                : "text-neutral-500 hover:text-neutral-300"
+                ? "text-brass-400 bg-brass-500/20 border border-brass-500/40"
+                : "text-crema-600 hover:text-crema-200 hover:bg-espresso-800"
             )}
-            title="Bộ hòa âm không gian (Rain/Lofi)"
+            title={t("soundscape_title")}
           >
-            <Headphones size={18} />
+            <AppIcon name="headphones" size={17} />
           </button>
 
           <button
@@ -211,12 +220,12 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
             className={cn(
               "p-2 rounded-lg transition-colors",
               isSensoryFriendly
-                ? "text-amber-400 bg-amber-950/40"
-                : "text-neutral-500 hover:text-neutral-300"
+                ? "text-bourbon-400 bg-bourbon-500/20 border border-bourbon-500/40"
+                : "text-crema-600 hover:text-crema-200 hover:bg-espresso-800"
             )}
-            title={isSensoryFriendly ? "Chế độ ADHD/Sensory: BẬT" : "Bật chế độ dịu mắt (ADHD Friendly)"}
+            title={isSensoryFriendly ? t("sensory_mode_on") : t("sensory_mode_off")}
           >
-            <Eye size={18} />
+            <AppIcon name="eye" size={17} />
           </button>
 
           <button
@@ -227,12 +236,12 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
             className={cn(
               "p-2 rounded-lg transition-colors",
               isChatOpen
-                ? "text-indigo-400 bg-indigo-950/40"
-                : "text-neutral-500 hover:text-neutral-300"
+                ? "text-brass-400 bg-brass-500/20 border border-brass-500/40"
+                : "text-crema-600 hover:text-crema-200 hover:bg-espresso-800"
             )}
-            title="Chat phòng"
+            title={t("chat_title")}
           >
-            <MessageSquare size={18} />
+            <AppIcon name="chat" size={17} />
           </button>
 
           {room.archetype === "SANDBOX_TEST" && (
@@ -241,36 +250,36 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
               className={cn(
                 "p-2 rounded-lg transition-colors",
                 showDiagnosticHUD
-                  ? "text-orange-400 bg-orange-950/40"
-                  : "text-neutral-500 hover:text-orange-400"
+                  ? "text-bourbon-400 bg-bourbon-500/20"
+                  : "text-crema-600 hover:text-bourbon-400"
               )}
-              title="Bảng chẩn đoán Sandbox (HUD)"
+              title={t("diagnostic_hud_title")}
             >
-              <FlaskConical size={18} />
+              <AppIcon name="flask" size={17} />
             </button>
           )}
 
           <button
             onClick={() => setIsFullscreen((v) => !v)}
-            className="p-2 text-neutral-500 hover:text-neutral-300 transition-colors"
-            title="Toàn màn hình (phím F)"
+            className="p-2 text-crema-600 hover:text-crema-200 hover:bg-espresso-800 rounded-lg transition-colors hidden sm:inline-flex"
+            title={t("room_fullscreen_title")}
           >
-            <Maximize2 size={18} />
+            <AppIcon name="maximize" size={17} />
           </button>
 
           <button
             onClick={handleLeaveRoom}
-            className="p-2 text-red-500 hover:text-red-400 transition-colors"
-            title="Rời phòng"
+            className="p-2 text-bourbon-500 hover:text-bourbon-400 hover:bg-espresso-800 rounded-lg transition-colors"
+            title={t("room_leave")}
           >
-            <LogOut size={18} />
+            <AppIcon name="logout" size={17} />
           </button>
         </div>
       </div>
 
-      {/* Main content: Video Grid + optional Drawers & Diagnostic HUD */}
-      <div className="flex flex-1 overflow-hidden relative">
-        <div className="flex-1 overflow-hidden">
+      {/* Center Video Grid Area with Drawers */}
+      <div className="flex flex-1 overflow-hidden relative w-full">
+        <div className="flex-1 overflow-hidden w-full h-full">
           <StudyVideoGrid
             serverUrl={livekitUrl!}
             token={livekitToken}

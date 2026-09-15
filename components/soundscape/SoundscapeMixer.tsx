@@ -1,17 +1,17 @@
 "use client";
-// components/soundscape/SoundscapeMixer.tsx
-// StudyStream OS — Ambient Soundscape Mixer UI Drawer
 
 import { useState, useEffect } from "react";
-import { soundscape, SOUND_TRACKS, SoundTrack } from "@/lib/soundscape";
-import { Volume2, VolumeX, X, Sliders, Sparkles } from "lucide-react";
+import { soundscape, SOUND_TRACKS } from "@/lib/soundscape";
+import { AppIcon } from "@/components/ui/Icon";
 import { cn } from "@/lib/utils";
+import { useLanguage, TranslationKey } from "@/context/LanguageContext";
 
 interface SoundscapeMixerProps {
   onClose?: () => void;
 }
 
 export function SoundscapeMixer({ onClose }: SoundscapeMixerProps) {
+  const { t } = useLanguage();
   const [volumes, setVolumes] = useState<Record<string, number>>({});
   const [isMuted, setIsMuted] = useState(false);
 
@@ -35,39 +35,39 @@ export function SoundscapeMixer({ onClose }: SoundscapeMixerProps) {
     setVolumes((prev) => ({ ...prev, [id]: val }));
   };
 
-  const applyPreset = (preset: { name: string; settings: Record<string, number> }) => {
-    // Stop all first
-    SOUND_TRACKS.forEach((t) => {
-      soundscape.setVolume(t.id, 0);
+  const applyPreset = (settings: Record<string, number>) => {
+    SOUND_TRACKS.forEach((track) => {
+      soundscape.setVolume(track.id, 0);
     });
-    // Apply preset
-    Object.entries(preset.settings).forEach(([id, vol]) => {
+    Object.entries(settings).forEach(([id, vol]) => {
       soundscape.setVolume(id, vol);
     });
   };
 
-  const presets: { name: string; settings: Record<string, number> }[] = [
+  const presets: { labelKey: TranslationKey; settings: Record<string, number> }[] = [
     {
-      name: "🌧️ Đêm Mưa Sâu Lắng",
-      settings: { rain: 0.6, lofi: 0.3 },
+      labelKey: "preset_espresso_bar",
+      settings: { espresso: 0.5, jazz: 0.4 },
     },
     {
-      name: "☕ Góc Quán Cafe",
-      settings: { cafe: 0.5, fireplace: 0.2 },
+      labelKey: "preset_night_shift",
+      settings: { espresso: 0.6, rain: 0.3 },
     },
     {
-      name: "🌊 Biển Đêm Tĩnh Lặng",
-      settings: { ocean: 0.5, fan: 0.2 },
+      labelKey: "preset_deep_rain",
+      settings: { rain: 0.6, jazz: 0.5 },
     },
   ];
 
   return (
-    <div className="w-80 bg-neutral-900 border-l border-neutral-800 flex flex-col h-full z-20">
+    <div className="w-full sm:w-80 bg-espresso-900 border-l border-espresso-700/80 flex flex-col h-full z-20 shadow-2xl select-none">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-espresso-700/80 bg-espresso-900">
         <div className="flex items-center gap-2">
-          <Sliders size={16} className="text-indigo-400" />
-          <h3 className="font-semibold text-neutral-200 text-sm">Bộ Hòa Âm Không Gian</h3>
+          <AppIcon name="sliders" size={18} className="text-brass-500" />
+          <h3 className="font-semibold text-crema-100 text-sm">
+            {t("soundscape_title")}
+          </h3>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -75,44 +75,44 @@ export function SoundscapeMixer({ onClose }: SoundscapeMixerProps) {
             className={cn(
               "p-1.5 rounded-lg transition-colors",
               isMuted
-                ? "text-red-400 bg-red-950/40"
-                : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
+                ? "text-bourbon-400 bg-bourbon-500/20"
+                : "text-crema-400 hover:text-crema-100 hover:bg-espresso-800"
             )}
-            title={isMuted ? "Bật âm thanh" : "Tắt toàn bộ"}
+            title={isMuted ? t("sound_unmute_all") : t("sound_mute_all")}
           >
-            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            <AppIcon name={isMuted ? "volumeMute" : "volumeUp"} size={16} />
           </button>
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 text-neutral-400 hover:text-neutral-200 rounded-lg transition-colors"
+              className="p-1.5 text-crema-600 hover:text-crema-100 rounded-lg transition-colors"
             >
-              <X size={16} />
+              <AppIcon name="close" size={16} />
             </button>
           )}
         </div>
       </div>
 
       {/* Quick Presets */}
-      <div className="px-4 py-3 border-b border-neutral-800/60 bg-neutral-950/40">
-        <p className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-          <Sparkles size={12} className="text-amber-400" /> Gợi Ý Hòa Âm Nhanh
+      <div className="px-4 py-3 border-b border-espresso-700/60 bg-espresso-850/50">
+        <p className="text-[10px] font-mono font-bold text-brass-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <AppIcon name="sparkles" size={12} /> {t("sound_presets")}
         </p>
         <div className="flex flex-col gap-1.5">
           {presets.map((p) => (
             <button
-              key={p.name}
-              onClick={() => applyPreset(p)}
-              className="text-left text-xs px-2.5 py-1.5 rounded-md bg-neutral-800/80 hover:bg-indigo-950/40 hover:text-indigo-300 text-neutral-300 border border-neutral-700/50 transition-colors"
+              key={p.labelKey}
+              onClick={() => applyPreset(p.settings)}
+              className="text-left text-xs px-2.5 py-1.5 rounded-lg bg-espresso-800/80 hover:bg-espresso-750 text-crema-200 hover:text-brass-300 border border-espresso-700/60 transition-colors truncate"
             >
-              {p.name}
+              {t(p.labelKey)}
             </button>
           ))}
         </div>
       </div>
 
       {/* Track Volume Sliders */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {SOUND_TRACKS.map((track) => {
           const currentVol = Math.round((volumes[track.id] ?? 0) * 100);
           const isPlaying = currentVol > 0 && !isMuted;
@@ -121,20 +121,24 @@ export function SoundscapeMixer({ onClose }: SoundscapeMixerProps) {
             <div
               key={track.id}
               className={cn(
-                "p-3 rounded-xl border transition-all",
+                "p-3 rounded-xl border transition-all duration-200",
                 isPlaying
-                  ? "bg-indigo-950/20 border-indigo-500/40"
-                  : "bg-neutral-800/40 border-neutral-800"
+                  ? "bg-espresso-800 border-brass-500/40 shadow-sm"
+                  : "bg-espresso-850/40 border-espresso-700/60"
               )}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{track.icon}</span>
-                  <span className="text-xs font-medium text-neutral-200 truncate">
-                    {track.name}
+                  <AppIcon
+                    name={track.iconName}
+                    size={16}
+                    className={isPlaying ? "text-brass-400" : "text-crema-600"}
+                  />
+                  <span className="text-xs font-medium text-crema-200 truncate max-w-[170px]">
+                    {t(track.nameKey as TranslationKey)}
                   </span>
                 </div>
-                <span className="text-xs font-mono text-neutral-500">
+                <span className="text-[11px] font-mono tabular-nums text-crema-600">
                   {currentVol}%
                 </span>
               </div>
@@ -147,7 +151,7 @@ export function SoundscapeMixer({ onClose }: SoundscapeMixerProps) {
                 onChange={(e) =>
                   handleVolumeChange(track.id, Number(e.target.value) / 100)
                 }
-                className="w-full accent-indigo-500 h-1.5 bg-neutral-700 rounded-lg cursor-pointer"
+                className="w-full accent-brass-500 h-1.5 bg-espresso-700 rounded-lg cursor-pointer"
               />
             </div>
           );

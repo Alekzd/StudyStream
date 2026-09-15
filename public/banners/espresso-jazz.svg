@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bgGlow" cx="65%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#241913" stop-opacity="0.85" />
+      <stop offset="40%" stop-color="#140f0c" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#0c0a09" stop-opacity="1" />
+    </radialGradient>
+    <radialGradient id="brassSpot" cx="30%" cy="20%" r="35%">
+      <stop offset="0%" stop-color="#c29a6c" stop-opacity="0.18" />
+      <stop offset="70%" stop-color="#c29a6c" stop-opacity="0.03" />
+      <stop offset="100%" stop-color="#c29a6c" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="amberSpot" cx="75%" cy="60%" r="45%">
+      <stop offset="0%" stop-color="#e07a38" stop-opacity="0.12" />
+      <stop offset="80%" stop-color="#e07a38" stop-opacity="0.02" />
+      <stop offset="100%" stop-color="#e07a38" stop-opacity="0" />
+    </radialGradient>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch" />
+      <feColorMatrix type="matrix" values="0 0 0 0 0.8  0 0 0 0 0.6  0 0 0 0 0.4  0 0 0 0.04 0" />
+    </filter>
+  </defs>
+
+  <!-- Deep Onyx Canvas -->
+  <rect width="1920" height="1080" fill="url(#bgGlow)" />
+  <rect width="1920" height="1080" fill="url(#brassSpot)" />
+  <rect width="1920" height="1080" fill="url(#amberSpot)" />
+  
+  <!-- Subtle Vinyl Grooves / Waveform contours -->
+  <g opacity="0.07" stroke="#c29a6c" stroke-width="1.2" fill="none">
+    <circle cx="1500" cy="540" r="300" />
+    <circle cx="1500" cy="540" r="420" />
+    <circle cx="1500" cy="540" r="540" />
+    <circle cx="1500" cy="540" r="660" />
+    <circle cx="1500" cy="540" r="780" />
+    <circle cx="1500" cy="540" r="900" />
+    <circle cx="1500" cy="540" r="1050" />
+  </g>
+
+  <!-- Subtle Film Grain -->
+  <rect width="1920" height="1080" filter="url(#grain)" opacity="0.8" />
+</svg>

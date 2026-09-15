@@ -1,26 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* ───────────────────────────────────────────────────────────────────────────
+   THE MIDNIGHT ESPRESSO ATELIER — Design Tokens & Pure Dark Workspace
+   Tailwind CSS v4 Theme Configuration
+   Zero Global Pollution | Scoped Tokens | Pragmatic & High Density
+─────────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  --font-sans: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Deep Coffeeholic & Espresso Roast Surface Spectrum */
+  --color-espresso-950: #0c0a09; /* Deep Onyx black — Background */
+  --color-espresso-900: #14110f; /* Smoked bean — App chrome & sidebars */
+  --color-espresso-850: #1a1512; /* Surface card / panels */
+  --color-espresso-800: #221c17; /* Elevated elements & dropdowns */
+  --color-espresso-750: #2b231e; /* Hover states & inputs */
+  --color-espresso-700: #382e27; /* Hairline borders */
+  --color-espresso-600: #4a3d34; /* Active borders / dividers */
+  --color-espresso-500: #6b584b; /* Subtle icons / muted accents */
+
+  /* Aged Brass & Saxophone Metal Accents (Jazz Bar) */
+  --color-brass-300: #dec49e;
+  --color-brass-400: #d1ae7e;
+  --color-brass-500: #c29a6c; /* Primary Accent (Aged Brass) */
+  --color-brass-600: #a88154;
+  --color-brass-700: #8a663f;
+
+  /* Workaholic Bourbon / Roasted Amber (Sprint, Flame, Pomodoro) */
+  --color-bourbon-400: #ea8a4e;
+  --color-bourbon-500: #e07a38; /* Primary Action & Streak Flame */
+  --color-bourbon-600: #c25f23;
+  --color-bourbon-700: #9e4a17;
+
+  /* Antique Patina & Muted Forest (Status: In-Room / Active Video / Online) */
+  --color-patina-400: #62947e;
+  --color-patina-500: #4e7a66; /* Active Room / Connected LiveKit */
+  --color-patina-600: #3d6352;
+
+  /* Crema & Parchment Typographic Palette (Zero Eye-Strain) */
+  --color-crema-50:  #fbf8f4; /* High-contrast headlines */
+  --color-crema-100: #f5ebe1; /* Primary body text (Crema) */
+  --color-crema-200: #e8dbcf; /* Secondary descriptive text */
+  --color-crema-400: #b5a494; /* Labels, placeholders */
+  --color-crema-600: #78695d; /* Timestamps & muted captions */
+  --color-crema-800: #423831; /* Subtle watermark */
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   ROOT BASE SETTINGS — Clean, Uncluttered, Scoped
+─────────────────────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+  --background: #0c0a09;
+  --foreground: #f5ebe1;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html, body {
+  background-color: #0c0a09;
+  color: #f5ebe1;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Tabular numbers for chronograph, Pomodoro and stopwatches */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom Minimalist Espresso Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2b231e;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4a3d34;
+}
+
+/* Mobile Safe-Area Utilities */
+.safe-pb {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+.safe-pt {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
 }

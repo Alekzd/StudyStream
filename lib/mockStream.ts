@@ -37,7 +37,7 @@ export function createMockVideoStream(label: string = "Test Scholar"): {
     // 3. Status text and real-time millisecond timestamp
     ctx.fillStyle = "#f8fafc";
     ctx.font = "bold 22px monospace";
-    ctx.fillText(`🧪 MOCK PEER: ${label}`, 24, 48);
+    ctx.fillText(`MOCK PEER: ${label}`, 24, 48);
 
     ctx.font = "18px monospace";
     ctx.fillStyle = "#10b981";
@@ -50,7 +50,9 @@ export function createMockVideoStream(label: string = "Test Scholar"): {
 
   draw();
 
-  const stream = (canvas as any).captureStream(30);
+  const stream = (
+    canvas as HTMLCanvasElement & { captureStream(fps: number): MediaStream }
+  ).captureStream(30);
 
   return {
     stream,

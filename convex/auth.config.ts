@@ -1,8 +1,7 @@
-// convex/auth.config.ts
 // Clerk <-> Convex JWT integration
 // Replace domain with your actual Clerk instance domain
 
-export default {
+const authConfig = {
   providers: [
     {
       // Update this domain after creating your Clerk application
@@ -12,3 +11,5 @@ export default {
     },
   ],
 };
+
+export default authConfig;

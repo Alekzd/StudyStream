@@ -1,15 +1,13 @@
-// convex/http.ts
-// StudyStream OS — HTTP Router for Clerk webhook sync
-// SECURITY: All webhook payloads verified with Svix HMAC-SHA256 signature
+// SECURITY: All webhook payloads verified with Svix HMAC-SHA256 signature / LiveKit WebhookReceiver
 
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { api } from "./_generated/api";
+import { internal } from "./_generated/api";
 import { Webhook } from "svix";
+import { WebhookReceiver } from "livekit-server-sdk";
 
 const http = httpRouter();
 
-// ─── CLERK WEBHOOK: Sync users on sign-up / update / delete ─────────
 http.route({
   path: "/clerk-webhook",
   method: "POST",
@@ -29,7 +27,7 @@ http.route({
       return new Response("Missing svix headers", { status: 400 });
     }
 
-    // ✅ Cryptographic signature verification — prevents forged requests
+    // Cryptographic signature verification — prevents forged requests
     let evt: { type: string; data: Record<string, unknown> };
     try {
       const wh = new Webhook(WEBHOOK_SECRET);
@@ -57,7 +55,7 @@ http.route({
         [data.first_name, data.last_name].filter(Boolean).join(" ") ||
         email.split("@")[0];
 
-      await ctx.runMutation(api.users.upsertUser, {
+      await ctx.runMutation(internal.users.upsertUser, {
         clerkId: data.id,
         email,
         name,
@@ -67,10 +65,116 @@ http.route({
 
     if (evt.type === "user.deleted") {
       const data = evt.data as { id: string };
-      await ctx.runMutation(api.users.deleteUser, { clerkId: data.id });
+      await ctx.runMutation(internal.users.deleteUser, { clerkId: data.id });
+    }
+
+    // Cleanup active workstation participants if user logs off or session is revoked
+    if (
+      evt.type === "session.ended" ||
+      evt.type === "session.removed" ||
+      evt.type === "session.revoked"
+    ) {
+      const data = evt.data as { user_id?: string };
+      if (data.user_id) {
+        await ctx.runMutation(internal.rooms.cleanupUserSession, {
+          clerkId: data.user_id,
+        });
+      }
     }
 
     return new Response("OK", { status: 200 });
+  }),
+});
+
+http.route({
+  path: "/livekit-webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const apiKey = process.env.LIVEKIT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET;
+
+    if (!apiKey || !apiSecret) {
+      console.warn("[livekit-webhook] LIVEKIT credentials not configured");
+      return new Response("Not configured", { status: 500 });
+    }
+
+    const authHeader =
+      request.headers.get("Authorization") || request.headers.get("Authorize");
+    const body = await request.text();
+
+    const receiver = new WebhookReceiver(apiKey, apiSecret);
+    let event;
+    try {
+      event = await receiver.receive(body, authHeader || undefined);
+    } catch (err) {
+      console.error("[livekit-webhook] Signature verification failed:", err);
+      return new Response("Invalid signature", { status: 401 });
+    }
+
+    // Participant abrupt disconnect or shutdown
+    if (
+      event.event === "participant_left" ||
+      event.event === "participant_connection_aborted"
+    ) {
+      const identity = event.participant?.identity;
+      if (identity) {
+        await ctx.runMutation(internal.rooms.cleanupParticipantByIdentity, {
+          liveKitIdentity: identity,
+          roomName: event.room?.name,
+        });
+      }
+    } else if (event.event === "room_finished") {
+      if (event.room?.name) {
+        await ctx.runMutation(internal.rooms.cleanupRoomParticipantsByName, {
+          roomName: event.room.name,
+        });
+      }
+    }
+
+    return new Response("OK", { status: 200 });
+  }),
+});
+
+http.route({
+  path: "/api/leave-room",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const text = await request.text();
+      const body = text ? JSON.parse(text) : {};
+      if (body.roomId) {
+        await ctx.runMutation(internal.rooms.leaveRoomBeacon, {
+          roomId: body.roomId,
+          liveKitIdentity: body.liveKitIdentity,
+          userId: body.userId,
+        });
+      }
+      return new Response("OK", {
+        status: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+        },
+      });
+    } catch {
+      return new Response("Bad Request", { status: 400 });
+    }
+  }),
+});
+
+http.route({
+  path: "/api/leave-room",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    });
   }),
 });
 

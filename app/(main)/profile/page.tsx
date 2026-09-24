@@ -7,10 +7,11 @@ import { cn } from "@/lib/utils";
 import { AppIcon } from "@/components/ui/Icon";
 import { BannerBackground } from "@/components/ui/BannerBackground";
 import { useLanguage } from "@/context/LanguageContext";
+import { PageTransition, MotionButton } from "@/components/ui/motion";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const currentUser = useQuery(api.users.getCurrentUser);
   const focusLogs = useQuery(api.users.getMyFocusLogs, { limit: 90 });
   const leaderboard = useQuery(api.users.getStreakLeaderboard, { limit: 10 });
@@ -50,15 +51,17 @@ export default function ProfilePage() {
 
   return (
     <BannerBackground opacity={0.25}>
-      <div className="flex flex-col h-full overflow-y-auto p-4 sm:p-6 md:p-8 max-w-5xl mx-auto w-full select-none">
+      <PageTransition className="flex flex-col h-full overflow-y-auto p-4 sm:p-6 md:p-8 max-w-5xl mx-auto w-full select-none pb-safe-nav md:pb-8">
         {/* Header */}
         <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <button
+          <MotionButton
+            variant="surface"
+            size="icon"
             onClick={() => router.push("/explore")}
-            className="p-2 sm:p-2.5 rounded-xl bg-espresso-900 border border-espresso-700 text-crema-400 hover:text-brass-300 hover:border-brass-500/40 transition-colors shrink-0"
+            className="shrink-0"
           >
             <AppIcon name="arrowLeft" size={18} />
-          </button>
+          </MotionButton>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-crema-100 flex items-center gap-2 font-sans tracking-tight">
               {t("profile_title")}
@@ -117,7 +120,11 @@ export default function ProfilePage() {
                 {t("profile_level")}
               </p>
               <h3 className="text-lg sm:text-xl font-bold text-crema-100 mt-0.5 truncate max-w-[160px]">
-                {streakCount > 14 ? "Espresso Veteran" : streakCount > 3 ? "Deep Grinder" : "Barista Apprentice"}
+                {streakCount > 14
+                  ? (language === "vi" ? "Kỷ luật cao" : "Consistent")
+                  : streakCount > 3
+                    ? (language === "vi" ? "Chăm chỉ" : "Dedicated")
+                    : (language === "vi" ? "Mới bắt đầu" : "Beginner")}
               </h3>
             </div>
           </div>
@@ -201,7 +208,7 @@ export default function ProfilePage() {
             ))}
           </div>
         </div>
-      </div>
+      </PageTransition>
     </BannerBackground>
   );
 }

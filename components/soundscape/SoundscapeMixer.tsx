@@ -5,6 +5,7 @@ import { soundscape, SOUND_TRACKS } from "@/lib/soundscape";
 import { AppIcon } from "@/components/ui/Icon";
 import { cn } from "@/lib/utils";
 import { useLanguage, TranslationKey } from "@/context/LanguageContext";
+import { MotionButton } from "@/components/ui/motion";
 
 interface SoundscapeMixerProps {
   onClose?: () => void;
@@ -70,25 +71,24 @@ export function SoundscapeMixer({ onClose }: SoundscapeMixerProps) {
           </h3>
         </div>
         <div className="flex items-center gap-1">
-          <button
+          <MotionButton
+            variant={isMuted ? "bourbon" : "ghost"}
+            size="icon"
             onClick={() => soundscape.toggleMuteAll()}
-            className={cn(
-              "p-1.5 rounded-lg transition-colors",
-              isMuted
-                ? "text-bourbon-400 bg-bourbon-500/20"
-                : "text-crema-400 hover:text-crema-100 hover:bg-espresso-800"
-            )}
             title={isMuted ? t("sound_unmute_all") : t("sound_mute_all")}
+            className="w-8 h-8 rounded-lg"
           >
             <AppIcon name={isMuted ? "volumeMute" : "volumeUp"} size={16} />
-          </button>
+          </MotionButton>
           {onClose && (
-            <button
+            <MotionButton
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="p-1.5 text-crema-600 hover:text-crema-100 rounded-lg transition-colors"
+              className="w-8 h-8 rounded-lg text-crema-600 hover:text-crema-100"
             >
               <AppIcon name="close" size={16} />
-            </button>
+            </MotionButton>
           )}
         </div>
       </div>
@@ -100,13 +100,15 @@ export function SoundscapeMixer({ onClose }: SoundscapeMixerProps) {
         </p>
         <div className="flex flex-col gap-1.5">
           {presets.map((p) => (
-            <button
+            <MotionButton
               key={p.labelKey}
+              variant="surface"
+              size="sm"
               onClick={() => applyPreset(p.settings)}
-              className="text-left text-xs px-2.5 py-1.5 rounded-lg bg-espresso-800/80 hover:bg-espresso-750 text-crema-200 hover:text-brass-300 border border-espresso-700/60 transition-colors truncate"
+              className="w-full justify-start text-xs font-normal text-crema-200 hover:text-brass-300 truncate"
             >
               {t(p.labelKey)}
-            </button>
+            </MotionButton>
           ))}
         </div>
       </div>

@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ConvexClientProvider } from "./providers";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { ActiveRoomProvider } from "@/context/ActiveRoomContext";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -38,7 +39,9 @@ export default function RootLayout({
         <body className="bg-espresso-950 text-crema-100 antialiased min-h-dvh flex flex-col selection:bg-brass-500/30 selection:text-brass-300">
           <ConvexClientProvider>
             <LanguageProvider>
-              {children}
+              <ActiveRoomProvider>
+                {children}
+              </ActiveRoomProvider>
             </LanguageProvider>
           </ConvexClientProvider>
         </body>

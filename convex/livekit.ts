@@ -1,5 +1,3 @@
-// convex/livekit.ts
-// StudyStream OS — LiveKit Room Token Generator (Serverless Action)
 //
 // SECURITY: LIVEKIT_API_SECRET is NEVER exposed to the client.
 // Only this server action can issue LiveKit JWTs.
@@ -7,7 +5,7 @@
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { AccessToken } from "livekit-server-sdk";
+import { AccessToken, TrackSource } from "livekit-server-sdk";
 
 export const getRoomToken = action({
   args: {
@@ -24,7 +22,7 @@ export const getRoomToken = action({
 
     const apiKey = process.env.LIVEKIT_API_KEY;
     const apiSecret = process.env.LIVEKIT_API_SECRET;
-    const wsUrl = process.env.NEXT_PUBLIC_LIVEKIT_WS_URL;
+    const wsUrl = process.env.NEXT_PUBLIC_LIVEKIT_WS_URL || process.env.LIVEKIT_URL;
 
     if (!apiKey || !apiSecret || !wsUrl) {
       throw new Error("LIVEKIT_NOT_CONFIGURED: Hệ thống chưa cấu hình LiveKit credentials.");
@@ -33,9 +31,9 @@ export const getRoomToken = action({
     // 2. Set permissions based on room archetype
     // SILENT_FOCUS rooms: block microphone entirely
     const isSilentRoom = args.archetype === "SILENT_FOCUS";
-    const canPublishSources: string[] = isSilentRoom
-      ? ["camera"]
-      : ["camera", "microphone", "screen_share"];
+    const canPublishSources: TrackSource[] = isSilentRoom
+      ? [TrackSource.CAMERA]
+      : [TrackSource.CAMERA, TrackSource.MICROPHONE, TrackSource.SCREEN_SHARE];
 
     // 3. Generate signed LiveKit JWT (4-hour TTL)
     const at = new AccessToken(apiKey, apiSecret, {
@@ -50,7 +48,7 @@ export const getRoomToken = action({
       canPublish: true,
       canPublishData: true,
       canSubscribe: true,
-      canPublishSources: canPublishSources as any,
+      canPublishSources,
     });
 
     const token = await at.toJwt();

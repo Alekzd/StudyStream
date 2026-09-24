@@ -1,12 +1,8 @@
-// convex/users.ts
-// StudyStream OS — User mutations and queries
-
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthUser, requireAuthUser } from "./helpers";
+import { getAuthUser, requireAuthUser, formatDateKey, calculateNewStreak } from "./helpers";
 
-// Upsert user from Clerk webhook (user.created / user.updated)
-export const upsertUser = mutation({
+export const upsertUser = internalMutation({
   args: {
     clerkId: v.string(),
     email: v.string(),
@@ -45,8 +41,7 @@ export const upsertUser = mutation({
   },
 });
 
-// Delete user from Clerk webhook (user.deleted)
-export const deleteUser = mutation({
+export const deleteUser = internalMutation({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -57,6 +52,13 @@ export const deleteUser = mutation({
     if (user) {
       await ctx.db.delete(user._id);
     }
+  },
+});
+
+export const syncCurrentUser = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await requireAuthUser(ctx);
   },
 });
 
@@ -92,10 +94,24 @@ export const getStreakLeaderboard = query({
 export const updateFocusStats = mutation({
   args: {
     durationMinutes: v.number(),
+    roomId: v.optional(v.id("rooms")),
+    serverId: v.optional(v.id("servers")),
   },
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
-    const today = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const today = formatDateKey(now);
+
+    // Rule 5: Sandbox rooms don't count toward streak/focus logs
+    if (args.roomId) {
+      const room = await ctx.db.get(args.roomId);
+      if (room?.isSandbox) {
+        return { isSandbox: true, logged: false };
+      }
+    }
+
+    // Update streak
+    const newStreak = calculateNewStreak(user.streakCount, user.lastStudyDate, today);
 
     // Check if already logged focus today
     const existingLog = await ctx.db
@@ -108,14 +124,28 @@ export const updateFocusStats = mutation({
     if (existingLog) {
       await ctx.db.patch(existingLog._id, {
         durationMinutes: existingLog.durationMinutes + args.durationMinutes,
+        completedAt: Date.now(),
+      });
+    } else if (args.roomId && args.serverId) {
+      await ctx.db.insert("focusLogs", {
+        userId: user._id,
+        roomId: args.roomId,
+        serverId: args.serverId,
+        durationMinutes: args.durationMinutes,
+        dateString: today,
+        completedAt: Date.now(),
       });
     }
 
-    // Update total minutes on user doc
+    // Update total minutes, streak, and lastStudyDate on user doc
     await ctx.db.patch(user._id, {
       totalFocusMinutes: user.totalFocusMinutes + args.durationMinutes,
+      streakCount: newStreak,
+      lastStudyDate: today,
       updatedAt: Date.now(),
     });
+
+    return { isSandbox: false, logged: true, streak: newStreak };
   },
 });
 
@@ -131,5 +161,57 @@ export const getMyFocusLogs = query({
       .withIndex("by_user_and_date", (q) => q.eq("userId", user._id))
       .order("desc")
       .take(args.limit ?? 90);
+  },
+});
+
+export const getDashboardSync = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthUser(ctx);
+    const now = new Date();
+    const today = formatDateKey(now);
+
+    const activeParticipants = await ctx.db.query("roomParticipants").collect();
+    const totalActiveScholars = activeParticipants.length;
+
+    if (!user) {
+      return {
+        totalActiveScholars,
+        todayFocusMinutes: 0,
+        streakCount: 0,
+        totalFocusMinutes: 0,
+        activeParticipant: null,
+      };
+    }
+
+    const todayLog = await ctx.db
+      .query("focusLogs")
+      .withIndex("by_user_and_date", (q) =>
+        q.eq("userId", user._id).eq("dateString", today)
+      )
+      .first();
+
+    const myParticipant = activeParticipants.find((p) => p.userId === user._id);
+    let activeRoom = null;
+    if (myParticipant) {
+      const room = await ctx.db.get(myParticipant.roomId);
+      if (room) {
+        activeRoom = {
+          roomId: room._id,
+          serverId: room.serverId,
+          roomName: room.name,
+          roomArchetype: room.archetype,
+          joinedAt: myParticipant.joinedAt,
+        };
+      }
+    }
+
+    return {
+      totalActiveScholars,
+      todayFocusMinutes: todayLog?.durationMinutes ?? 0,
+      streakCount: user.streakCount,
+      totalFocusMinutes: user.totalFocusMinutes,
+      activeParticipant: activeRoom,
+    };
   },
 });

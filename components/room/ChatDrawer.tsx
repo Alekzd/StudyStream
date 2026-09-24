@@ -7,6 +7,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { AppIcon } from "@/components/ui/Icon";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
+import { MotionButton } from "@/components/ui/motion";
 
 interface ChatDrawerProps {
   roomId: Id<"rooms">;
@@ -39,7 +40,7 @@ export function ChatDrawer({ roomId, serverId, onClose }: ChatDrawerProps) {
         content: content.trim(),
       });
       setContent("");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to send message:", err);
     } finally {
       setIsSending(false);
@@ -47,7 +48,7 @@ export function ChatDrawer({ roomId, serverId, onClose }: ChatDrawerProps) {
   };
 
   return (
-    <div className="w-full sm:w-80 bg-espresso-900 border-l border-espresso-700/80 flex flex-col h-full z-20 shadow-2xl select-none">
+    <div className="w-full sm:w-80 bg-espresso-900 border-l border-espresso-700/80 flex flex-col h-full z-20 shadow-2xl select-none animate-drawer-in">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-espresso-700/80 bg-espresso-900">
         <div className="flex items-center gap-2">
@@ -56,12 +57,14 @@ export function ChatDrawer({ roomId, serverId, onClose }: ChatDrawerProps) {
             {t("chat_title")}
           </h3>
         </div>
-        <button
+        <MotionButton
+          variant="ghost"
+          size="icon"
           onClick={onClose}
-          className="text-crema-600 hover:text-crema-200 transition-colors p-1"
+          className="w-10 h-10 rounded-lg text-crema-600 hover:text-crema-200"
         >
-          <AppIcon name="close" size={16} />
-        </button>
+          <AppIcon name="close" size={18} />
+        </MotionButton>
       </div>
 
       {/* Messages List */}
@@ -110,15 +113,18 @@ export function ChatDrawer({ roomId, serverId, onClose }: ChatDrawerProps) {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder={t("chat_placeholder")}
-          className="flex-1 px-3 py-2 bg-espresso-850 border border-espresso-700 rounded-xl text-xs text-crema-100 placeholder:text-crema-600 focus:outline-none focus:border-brass-500/50"
+          className="flex-1 px-3 py-2.5 bg-espresso-850 border border-espresso-700 rounded-xl text-sm text-crema-100 placeholder:text-crema-600 focus:outline-none focus:border-brass-500/50"
+          style={{ fontSize: "16px" }}
         />
-        <button
+        <MotionButton
           type="submit"
+          variant="brass"
+          size="icon"
           disabled={!content.trim() || isSending}
-          className="p-2 bg-brass-500 hover:bg-brass-600 disabled:opacity-40 text-espresso-950 font-bold rounded-xl transition-all shadow-sm shrink-0"
+          className="w-10 h-10 rounded-xl shrink-0"
         >
           <AppIcon name="send" size={16} />
-        </button>
+        </MotionButton>
       </form>
     </div>
   );

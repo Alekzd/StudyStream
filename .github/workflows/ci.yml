@@ -1,0 +1,110 @@
+name: StudyStream OS — CI Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-audit:
+    name: 🛡️ Security & Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Check for Leaked Environment Secrets
+        run: |
+          echo "Scanning git tracked files for accidental .env leakage..."
+          if git ls-files | grep -E "(^\.env(\..+)?$)" | grep -v "\.env\.example"; then
+            echo "::error::Found tracked .env secret file in git index! Aborting CI."
+            exit 1
+          else
+            echo "Secrets hygiene check passed: No sensitive .env files are tracked."
+          fi
+
+      - name: Dependency Vulnerability Audit
+        run: npm audit --audit-level=high
+
+  typecheck-and-lint:
+    name: 🔍 TypeScript & ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: TypeScript Strict Check
+        run: npm run typecheck
+
+      - name: ESLint Code Quality
+        run: npm run lint
+
+  test:
+    name: 🧪 Vitest Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Automated Vitest Tests
+        run: npm run test:run
+
+  build:
+    name: 🚀 Next.js Production Build
+    needs: [security-audit, typecheck-and-lint, test]
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmsuZXhhbXBsZS5jb20k
+      CLERK_SECRET_KEY: sk_test_mock_secret_key_for_ci_build
+      CLERK_JWT_ISSUER_DOMAIN: https://example.clerk.accounts.dev
+      NEXT_PUBLIC_CONVEX_URL: https://dummy-ci.convex.cloud
+      NEXT_PUBLIC_CONVEX_SITE_URL: https://dummy-ci.convex.site
+      LIVEKIT_API_KEY: devkey
+      LIVEKIT_API_SECRET: secret
+      NEXT_PUBLIC_LIVEKIT_WS_URL: wss://dummy-livekit.example.com
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Next.js 15 App
+        run: npm run build

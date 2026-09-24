@@ -57,6 +57,10 @@
   --foreground: #f5ebe1;
 }
 
+html {
+  font-size: 110%; /* Scale base font and rem metrics up by 10% */
+}
+
 html, body {
   background-color: #0c0a09;
   color: #f5ebe1;
@@ -64,6 +68,15 @@ html, body {
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Aggressively suppress Next.js dev indicator overlays */
+nextjs-portal,
+[data-nextjs-toast],
+[data-nextjs-dev-indicator],
+#nextjs-dev-indicator {
+  display: none !important;
+  pointer-events: none !important;
 }
 
 /* Tabular numbers for chronograph, Pomodoro and stopwatches */
@@ -94,3 +107,174 @@ html, body {
 .safe-pt {
   padding-top: max(0.75rem, env(safe-area-inset-top));
 }
+/* Content padding to clear the mobile bottom nav (3.75rem) + safe area */
+.pb-safe-nav {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 3.75rem);
+}
+/* Minimum touch target size per HIG/Material guidelines */
+.min-h-touch {
+  min-height: 44px;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   ANIMATION DESIGN SYSTEM — PiP, Pop, Extend, Retract, Spring Transitions
+   Silky 60fps animations engineered for visualization & seamless interaction
+   Using Apple / Framer spring curve: cubic-bezier(0.16, 1, 0.3, 1)
+─────────────────────────────────────────────────────────────────────────── */
+
+@keyframes pipIn {
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes pipOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.88) translateY(14px);
+  }
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  70% {
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes popOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes extendDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    max-height: 600px;
+    transform: translateY(0);
+  }
+}
+
+@keyframes retractUp {
+  from {
+    opacity: 1;
+    max-height: 600px;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes slideDrawerRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideDrawerLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-pip-in {
+  animation: pipIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pip-out {
+  animation: pipOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pop-in {
+  animation: popIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pop-out {
+  animation: popOut 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-extend {
+  animation: extendDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-retract {
+  animation: retractUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-drawer-in {
+  animation: slideDrawerRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-drawer-left {
+  animation: slideDrawerLeft 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: slideInUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.transition-spring {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hover-spring {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-spring:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+.hover-spring:active {
+  transform: translateY(0) scale(0.98);
+}
+

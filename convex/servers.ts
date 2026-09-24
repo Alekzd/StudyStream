@@ -1,7 +1,5 @@
-// convex/servers.ts
-// StudyStream OS — Server (Hub/Campus) mutations and queries
-
 import { mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import {
   requireAuthUser,
@@ -10,7 +8,6 @@ import {
   validateStringLength,
 } from "./helpers";
 
-// ─── CREATE SERVER ───────────────────────────────────────────────────
 export const createServer = mutation({
   args: {
     name: v.string(),
@@ -57,17 +54,17 @@ export const createServer = mutation({
     // Create default categories
     await ctx.db.insert("roomCategories", {
       serverId,
-      name: "🤫 Khu Tập Trung",
+      name: "Khu Tập Trung",
       order: 0,
     });
     await ctx.db.insert("roomCategories", {
       serverId,
-      name: "⏱️ Pomodoro Zone",
+      name: "Pomodoro Zone",
       order: 1,
     });
     await ctx.db.insert("roomCategories", {
       serverId,
-      name: "🧪 Test Zone",
+      name: "Test Zone",
       order: 2,
     });
 
@@ -75,7 +72,6 @@ export const createServer = mutation({
   },
 });
 
-// ─── JOIN SERVER BY INVITE CODE ──────────────────────────────────────
 export const joinByCode = mutation({
   args: { inviteCode: v.string() },
   handler: async (ctx, args) => {
@@ -113,7 +109,6 @@ export const joinByCode = mutation({
   },
 });
 
-// ─── GET MY SERVERS ──────────────────────────────────────────────────
 export const getMyServers = query({
   args: {},
   handler: async (ctx) => {
@@ -143,7 +138,6 @@ export const getMyServers = query({
   },
 });
 
-// ─── GET SERVER BY ID ────────────────────────────────────────────────
 export const getServerById = query({
   args: { serverId: v.id("servers") },
   handler: async (ctx, args) => {
@@ -171,7 +165,171 @@ export const getServerById = query({
   },
 });
 
-// ─── GET PUBLIC SERVERS (Explore page) ───────────────────────────────
+export const getCentralServer = query({
+  args: {},
+  handler: async (ctx) => {
+    const server = await ctx.db
+      .query("servers")
+      .withIndex("by_public", (q) => q.eq("isPublic", true))
+      .first();
+    return server;
+  },
+});
+
+export const getOrCreateCentralServer = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const existing = await ctx.db
+      .query("servers")
+      .withIndex("by_public", (q) => q.eq("isPublic", true))
+      .first();
+    if (existing) return existing._id;
+
+    const identity = await ctx.auth.getUserIdentity();
+    let ownerId: Id<"users"> | undefined;
+    if (identity) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+        .unique();
+      if (user) ownerId = user._id;
+    }
+    if (!ownerId) {
+      const firstUser = await ctx.db.query("users").first();
+      if (firstUser) ownerId = firstUser._id;
+    }
+
+    const now = Date.now();
+    if (!ownerId) {
+      ownerId = await ctx.db.insert("users", {
+        clerkId: "system_commons_bot",
+        name: "StudyStream Atelier",
+        email: "system@studystream.internal",
+        globalRole: "admin",
+        streakCount: 0,
+        totalFocusMinutes: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    const serverId = await ctx.db.insert("servers", {
+      name: "StudyStream Commons",
+      slug: "studystream-commons",
+      description: "Unified public virtual study library for all scholars.",
+      ownerId,
+      inviteCode: "COMMONS",
+      isPublic: true,
+      defaultPomodoroWork: 50,
+      defaultPomodoroBreak: 10,
+      createdAt: now,
+    });
+
+    return serverId;
+  },
+});
+
+export const DEFAULT_REGIONAL_SERVERS = [
+  {
+    name: "Vietnam Campus",
+    slug: "vietnam",
+    description: "Cộng đồng học tập Việt Nam (Hà Nội, TP.HCM - Múi giờ GMT+7).",
+    inviteCode: "VN2026",
+  },
+  {
+    name: "Global Commons",
+    slug: "global",
+    description: "Worldwide 24/7 Virtual Library for international scholars.",
+    inviteCode: "GLOBAL",
+  },
+  {
+    name: "Tokyo Atelier",
+    slug: "japan-korea",
+    description: "East Asia focus hub (Japan / Korea - JST/KST GMT+9).",
+    inviteCode: "TOKYO",
+  },
+  {
+    name: "Americas Hub",
+    slug: "north-america",
+    description: "North America regional study hub (EST / CST / PST).",
+    inviteCode: "USAHUB",
+  },
+  {
+    name: "Europe Library",
+    slug: "europe",
+    description: "European regional study lounge (UK, Germany, France - CET/BST).",
+    inviteCode: "EUROPE",
+  },
+];
+
+export const getRegionalServers = query({
+  args: {},
+  handler: async (ctx) => {
+    return ctx.db
+      .query("servers")
+      .withIndex("by_public", (q) => q.eq("isPublic", true))
+      .collect();
+  },
+});
+
+export const seedRegionalServers = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const existing = await ctx.db
+      .query("servers")
+      .withIndex("by_public", (q) => q.eq("isPublic", true))
+      .collect();
+
+    const identity = await ctx.auth.getUserIdentity();
+    let ownerId: Id<"users"> | undefined;
+    if (identity) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+        .unique();
+      if (user) ownerId = user._id;
+    }
+    if (!ownerId) {
+      const firstUser = await ctx.db.query("users").first();
+      if (firstUser) ownerId = firstUser._id;
+    }
+
+    const now = Date.now();
+    if (!ownerId) {
+      ownerId = await ctx.db.insert("users", {
+        clerkId: "system_regional_bot",
+        name: "StudyStream Atelier",
+        email: "system@studystream.internal",
+        globalRole: "admin",
+        streakCount: 0,
+        totalFocusMinutes: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    for (const reg of DEFAULT_REGIONAL_SERVERS) {
+      const found = existing.find((s) => s.slug === reg.slug);
+      if (!found) {
+        await ctx.db.insert("servers", {
+          name: reg.name,
+          slug: reg.slug,
+          description: reg.description,
+          ownerId,
+          inviteCode: reg.inviteCode,
+          isPublic: true,
+          defaultPomodoroWork: 50,
+          defaultPomodoroBreak: 10,
+          createdAt: now,
+        });
+      } else if (found.name !== reg.name) {
+        // Upgrade existing server record to clean name without raw emoji
+        await ctx.db.patch(found._id, { name: reg.name });
+      }
+    }
+  },
+});
+
 export const getPublicServers = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
@@ -182,7 +340,6 @@ export const getPublicServers = query({
   },
 });
 
-// ─── DELETE SERVER (Owner only) ──────────────────────────────────────
 export const deleteServer = mutation({
   args: { serverId: v.id("servers") },
   handler: async (ctx, args) => {
@@ -191,7 +348,6 @@ export const deleteServer = mutation({
   },
 });
 
-// ─── GET SERVER MEMBERS ──────────────────────────────────────────────
 export const getServerMembers = query({
   args: { serverId: v.id("servers") },
   handler: async (ctx, args) => {

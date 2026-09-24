@@ -1,11 +1,7 @@
-// convex/chat.ts
-// StudyStream OS — Room Chat mutations and queries
-
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireAuthUser, validateStringLength } from "./helpers";
 
-// ─── SEND MESSAGE ────────────────────────────────────────────────────
 export const sendMessage = mutation({
   args: {
     roomId: v.id("rooms"),
@@ -28,7 +24,6 @@ export const sendMessage = mutation({
   },
 });
 
-// ─── GET MESSAGES IN ROOM ────────────────────────────────────────────
 export const getMessages = query({
   args: {
     roomId: v.id("rooms"),

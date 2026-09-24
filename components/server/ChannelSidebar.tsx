@@ -3,11 +3,12 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter, usePathname } from "next/navigation";
-import { cn, getArchetypeLabel } from "@/lib/utils";
+import { cn, getArchetypeIcon, getArchetypeColor, cleanTitle } from "@/lib/utils";
 import { AppIcon } from "@/components/ui/Icon";
 import { CreateRoomModal } from "./CreateRoomModal";
 import { Id } from "@/convex/_generated/dataModel";
 import { useLanguage } from "@/context/LanguageContext";
+import { SkeletonPulse, MotionButton } from "@/components/ui/motion";
 
 interface ChannelSidebarProps {
   serverId: string;
@@ -30,9 +31,9 @@ export function ChannelSidebar({ serverId }: ChannelSidebarProps) {
   if (!server) {
     return (
       <div className="w-56 md:w-60 bg-espresso-900 border-r border-espresso-700/80 p-4 shrink-0 flex flex-col gap-3">
-        <div className="h-6 w-3/4 bg-espresso-800 rounded animate-pulse" />
+        <SkeletonPulse className="h-6 w-3/4 bg-espresso-800 rounded" />
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-8 bg-espresso-850 rounded animate-pulse" />
+          <SkeletonPulse key={i} className="h-8 bg-espresso-850 rounded" />
         ))}
       </div>
     );
@@ -43,14 +44,16 @@ export function ChannelSidebar({ serverId }: ChannelSidebarProps) {
       {/* Server Header */}
       <div className="flex items-center justify-between px-3.5 py-3 border-b border-espresso-700/80 bg-espresso-900/90">
         <h2 className="font-bold text-crema-100 truncate text-sm font-sans tracking-tight">
-          {server.name}
+          {cleanTitle(server.name)}
         </h2>
-        <button
-          className="text-crema-600 hover:text-brass-400 p-1 rounded-md transition-colors"
+        <MotionButton
+          variant="ghost"
+          size="icon"
+          className="w-7 h-7 text-crema-600 hover:text-brass-400 rounded-md"
           title={t("nav_settings")}
         >
           <AppIcon name="settings" size={16} />
-        </button>
+        </MotionButton>
       </div>
 
       {/* Rooms List Grouped by Category */}
@@ -95,11 +98,17 @@ export function ChannelSidebar({ serverId }: ChannelSidebarProps) {
                         : "text-crema-400 hover:bg-espresso-850 hover:text-crema-200"
                     )}
                   >
-                    {room.isLocked && (
+                    {room.isLocked ? (
                       <AppIcon name="lock" size={12} className="text-crema-600 shrink-0" />
+                    ) : (
+                      <AppIcon
+                        name={getArchetypeIcon(room.archetype)}
+                        size={14}
+                        className={cn(getArchetypeColor(room.archetype), "shrink-0")}
+                      />
                     )}
                     <span className="truncate flex-1">
-                      {getArchetypeLabel(room.archetype).split(" ")[0]} {room.name}
+                      {cleanTitle(room.name)}
                     </span>
                     {room.participantCount > 0 && (
                       <span className="flex items-center gap-1 text-[11px] text-patina-400 font-mono shrink-0">
@@ -132,8 +141,13 @@ export function ChannelSidebar({ serverId }: ChannelSidebarProps) {
                     : "text-crema-400 hover:bg-espresso-850 hover:text-crema-200"
                 )}
               >
+                <AppIcon
+                  name={getArchetypeIcon(room.archetype)}
+                  size={14}
+                  className={cn(getArchetypeColor(room.archetype), "shrink-0")}
+                />
                 <span className="truncate flex-1">
-                  {getArchetypeLabel(room.archetype).split(" ")[0]} {room.name}
+                  {cleanTitle(room.name)}
                 </span>
               </button>
             );

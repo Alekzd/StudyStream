@@ -1,62 +1,47 @@
 "use client";
 
 import React from "react";
-import { useLanguage } from "@/context/LanguageContext";
-import { cn } from "@/lib/utils";
+import { useLanguage, type Language } from "@/context/LanguageContext";
+import { AnimatedTabs, type TabItem } from "@/components/ui/motion/AnimatedTabs";
+import { MotionButton } from "@/components/ui/motion/MotionButton";
 
 interface LanguageToggleProps {
   className?: string;
   variant?: "pill" | "compact";
 }
 
+const LANG_TABS: TabItem<Language>[] = [
+  { id: "vi", label: "VIE" },
+  { id: "en", label: "ENG" },
+];
+
 export function LanguageToggle({ className, variant = "pill" }: LanguageToggleProps) {
   const { language, setLanguage } = useLanguage();
 
   if (variant === "compact") {
     return (
-      <button
+      <MotionButton
+        size="sm"
+        variant="outline"
         onClick={() => setLanguage(language === "vi" ? "en" : "vi")}
-        className={cn(
-          "px-2 py-1 rounded-md text-xs font-mono font-bold tracking-wider transition-all duration-200",
-          "border border-espresso-700 bg-espresso-900 text-brass-500 hover:border-brass-500/40 hover:text-crema-50",
-          className
-        )}
+        className={className}
         title={language === "vi" ? "Chuyển sang English" : "Switch to Tiếng Việt"}
       >
-        {language.toUpperCase()}
-      </button>
+        <span className="font-mono font-bold tracking-wider text-brass-400">
+          {language.toUpperCase()}
+        </span>
+      </MotionButton>
     );
   }
 
   return (
-    <div
-      className={cn(
-        "inline-flex items-center p-0.5 rounded-lg bg-espresso-900 border border-espresso-700/80 text-xs font-mono select-none",
-        className
-      )}
-    >
-      <button
-        onClick={() => setLanguage("vi")}
-        className={cn(
-          "px-2.5 py-1 rounded-md transition-all duration-200 font-semibold",
-          language === "vi"
-            ? "bg-espresso-750 text-brass-400 shadow-sm border border-espresso-600"
-            : "text-crema-600 hover:text-crema-200"
-        )}
-      >
-        VIE
-      </button>
-      <button
-        onClick={() => setLanguage("en")}
-        className={cn(
-          "px-2.5 py-1 rounded-md transition-all duration-200 font-semibold",
-          language === "en"
-            ? "bg-espresso-750 text-brass-400 shadow-sm border border-espresso-600"
-            : "text-crema-600 hover:text-crema-200"
-        )}
-      >
-        ENG
-      </button>
-    </div>
+    <AnimatedTabs
+      tabs={LANG_TABS}
+      activeId={language}
+      onChange={(val) => setLanguage(val as Language)}
+      layoutId="active-language-pill"
+      size="sm"
+      className={className}
+    />
   );
 }

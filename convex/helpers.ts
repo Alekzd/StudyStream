@@ -1,11 +1,7 @@
-// convex/helpers.ts
-// StudyStream OS — Server-side Auth Guards & RBAC
 // All mutations that change server state MUST use these guards.
 
 import { QueryCtx, MutationCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-
-// ─── AUTH GUARDS ────────────────────────────────────────────────────
 
 export async function requireAuthUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity();
@@ -19,6 +15,22 @@ export async function requireAuthUser(ctx: QueryCtx | MutationCtx) {
     .unique();
 
   if (!user) {
+    // JIT Provisioning: if user is authenticated via Clerk but webhook hasn't run yet
+    if ("insert" in ctx.db) {
+      const now = Date.now();
+      const userId = await (ctx as MutationCtx).db.insert("users", {
+        clerkId: identity.subject,
+        email: identity.email ?? `${identity.subject}@clerk.user`,
+        name: identity.name ?? identity.nickname ?? "Anonymous Scholar",
+        avatarUrl: identity.pictureUrl,
+        globalRole: "user",
+        streakCount: 0,
+        totalFocusMinutes: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return (await (ctx as MutationCtx).db.get(userId))!;
+    }
     throw new Error("USER_NOT_FOUND: Hồ sơ người dùng chưa được đồng bộ. Vui lòng đợi vài giây!");
   }
 
@@ -37,8 +49,6 @@ export async function getAuthUser(ctx: QueryCtx | MutationCtx) {
     return null;
   }
 }
-
-// ─── SERVER RBAC GUARDS ─────────────────────────────────────────────
 
 export async function requireServerRole(
   ctx: QueryCtx | MutationCtx,
@@ -60,8 +70,6 @@ export async function requireServerRole(
 
   return { user, membership };
 }
-
-// ─── UTILITY ────────────────────────────────────────────────────────
 
 export function validateStringLength(value: string | undefined, max: number, field: string) {
   if (value && value.length > max) {

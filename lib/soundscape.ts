@@ -9,7 +9,7 @@ export interface SoundTrack {
   nameKey: string;
   iconName: string;
   category: "coffee" | "jazz" | "ambient" | "nature";
-  src: string;
+  src: string | string[];
   defaultVolume: number;
 }
 
@@ -19,8 +19,10 @@ export const SOUND_TRACKS: SoundTrack[] = [
     nameKey: "sound_jazz",
     iconName: "jazz",
     category: "jazz",
-    // Deep vinyl hum and vintage acoustic warmth
-    src: "https://actions.google.com/sounds/v1/science_fiction/deep_hum.ogg",
+    src: [
+      "/sounds/ambient/jazz.mp3",
+      "https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/ambient.mp3",
+    ],
     defaultVolume: 0.35,
   },
   {
@@ -28,32 +30,44 @@ export const SOUND_TRACKS: SoundTrack[] = [
     nameKey: "sound_espresso",
     iconName: "coffee",
     category: "coffee",
-    // Atmospheric espresso bar ambient sound
-    src: "https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg",
+    src: [
+      "/sounds/ambient/coffee.mp3",
+      "https://raw.githubusercontent.com/gregoryjpark/ambient-factory/master/audio/talking.mp3",
+      "https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg",
+    ],
     defaultVolume: 0.3,
   },
   {
     id: "rain",
     nameKey: "sound_rain",
-    iconName: "soundwave",
+    iconName: "rain",
     category: "nature",
-    src: "https://actions.google.com/sounds/v1/weather/rain_heavy.ogg",
+    src: [
+      "/sounds/ambient/rain.mp3",
+      "https://raw.githubusercontent.com/gregoryjpark/ambient-factory/master/audio/rain.mp3",
+    ],
     defaultVolume: 0.4,
   },
   {
     id: "fireplace",
     nameKey: "sound_fireplace",
-    iconName: "flame",
+    iconName: "fire",
     category: "ambient",
-    src: "https://actions.google.com/sounds/v1/household/fireplace_crackling.ogg",
+    src: [
+      "/sounds/ambient/fire.mp3",
+      "https://raw.githubusercontent.com/gregoryjpark/ambient-factory/master/audio/fire.mp3",
+    ],
     defaultVolume: 0.25,
   },
   {
     id: "fan",
     nameKey: "sound_breeze",
-    iconName: "soundwave",
+    iconName: "wind",
     category: "ambient",
-    src: "https://actions.google.com/sounds/v1/household/electric_fan.ogg",
+    src: [
+      "/sounds/ambient/wind.mp3",
+      "https://raw.githubusercontent.com/gregoryjpark/ambient-factory/master/audio/wind.mp3",
+    ],
     defaultVolume: 0.2,
   },
 ];
@@ -110,7 +124,7 @@ class SoundscapeManager {
       const track = SOUND_TRACKS.find((t) => t.id === id);
       if (track) {
         howl = new Howl({
-          src: [track.src],
+          src: Array.isArray(track.src) ? track.src : [track.src],
           loop: true,
           html5: true,
           volume: this.isMuted ? 0 : clamped,
@@ -150,6 +164,52 @@ class SoundscapeManager {
     this.volumes.clear();
     this.saveStoredVolumes();
     this.notifyListeners();
+  }
+
+  public isPlayingAny(): boolean {
+    if (this.isMuted) return false;
+    for (const vol of this.volumes.values()) {
+      if (vol > 0) return true;
+    }
+    return false;
+  }
+
+  public getMasterVolume(): number {
+    let sum = 0;
+    let count = 0;
+    for (const vol of this.volumes.values()) {
+      if (vol > 0) {
+        sum += vol;
+        count++;
+      }
+    }
+    return count > 0 ? Math.round((sum / count) * 100) : 35;
+  }
+
+  public setMasterVolume(pct: number) {
+    const scale = Math.max(0, Math.min(1, pct / 100));
+    const activeTracks = Array.from(this.volumes.entries()).filter(([, v]) => v > 0);
+    if (activeTracks.length === 0) {
+      this.setVolume("espresso", scale);
+    } else {
+      activeTracks.forEach(([id]) => {
+        this.setVolume(id, scale);
+      });
+    }
+  }
+
+  public togglePlayPauseAll(): boolean {
+    if (this.isPlayingAny()) {
+      this.toggleMuteAll();
+      return false;
+    } else {
+      if (this.isMuted) {
+        this.toggleMuteAll();
+        return true;
+      }
+      this.setVolume("espresso", 0.35);
+      return true;
+    }
   }
 
   public subscribe(listener: () => void) {

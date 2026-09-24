@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { formatDuration, getArchetypeLabel, getArchetypeColor, cn } from "@/lib/utils";
+import {
+  formatDuration,
+  getArchetypeLabel,
+  getArchetypeIcon,
+  getArchetypeColor,
+  cn,
+  cleanTitle,
+  getServerIcon,
+} from "@/lib/utils";
 
 describe("lib/utils", () => {
   describe("formatDuration", () => {
@@ -25,17 +33,35 @@ describe("lib/utils", () => {
   });
 
   describe("getArchetypeLabel", () => {
-    it("returns correct labels for standard archetypes", () => {
-      expect(getArchetypeLabel("SILENT_FOCUS")).toContain("Im Lặng");
-      expect(getArchetypeLabel("CAM_ACCOUNTABILITY")).toContain("Cam-On");
-      expect(getArchetypeLabel("SYNC_POMODORO")).toContain("Pomodoro");
-      expect(getArchetypeLabel("AMBIENT_LOFI")).toContain("Ambient");
-      expect(getArchetypeLabel("PAIR_SCREENSHARE")).toContain("Pair Code");
-      expect(getArchetypeLabel("SANDBOX_TEST")).toContain("Sandbox");
+    it("returns correct Vietnamese labels without emojis", () => {
+      expect(getArchetypeLabel("SILENT_FOCUS", "vi")).toBe("Im Lặng");
+      expect(getArchetypeLabel("CAM_ACCOUNTABILITY", "vi")).toBe("Cam-On");
+      expect(getArchetypeLabel("SYNC_POMODORO", "vi")).toBe("Pomodoro");
+      expect(getArchetypeLabel("AMBIENT_LOFI", "vi")).toBe("Ambient");
+      expect(getArchetypeLabel("PAIR_SCREENSHARE", "vi")).toBe("Pair Code");
+      expect(getArchetypeLabel("SANDBOX_TEST", "vi")).toBe("Sandbox");
+    });
+
+    it("returns correct English labels without emojis", () => {
+      expect(getArchetypeLabel("SILENT_FOCUS", "en")).toBe("Silent Focus");
+      expect(getArchetypeLabel("CAM_ACCOUNTABILITY", "en")).toBe("Cam Accountability");
+      expect(getArchetypeLabel("SYNC_POMODORO", "en")).toBe("Sync Pomodoro");
+      expect(getArchetypeLabel("AMBIENT_LOFI", "en")).toBe("Ambient");
     });
 
     it("returns original value for unknown archetype", () => {
       expect(getArchetypeLabel("UNKNOWN_TYPE")).toBe("UNKNOWN_TYPE");
+    });
+  });
+
+  describe("getArchetypeIcon", () => {
+    it("returns semantic icon names for archetypes", () => {
+      expect(getArchetypeIcon("SILENT_FOCUS")).toBe("micOff");
+      expect(getArchetypeIcon("CAM_ACCOUNTABILITY")).toBe("videoOn");
+      expect(getArchetypeIcon("SYNC_POMODORO")).toBe("clock");
+      expect(getArchetypeIcon("AMBIENT_LOFI")).toBe("coffee");
+      expect(getArchetypeIcon("PAIR_SCREENSHARE")).toBe("screenShare");
+      expect(getArchetypeIcon("SANDBOX_TEST")).toBe("flask");
     });
   });
 
@@ -44,6 +70,40 @@ describe("lib/utils", () => {
       expect(getArchetypeColor("SILENT_FOCUS")).toBe("text-blue-400");
       expect(getArchetypeColor("CAM_ACCOUNTABILITY")).toBe("text-green-400");
       expect(getArchetypeColor("SYNC_POMODORO")).toBe("text-amber-400");
+    });
+  });
+
+  describe("cleanTitle", () => {
+    it("strips leading emojis and leaves legitimate title intact", () => {
+      expect(cleanTitle("☕ 24/7 Silent Focus Sanctuary")).toBe("24/7 Silent Focus Sanctuary");
+      expect(cleanTitle("🔥 Deep Work Pomodoro (50/10)")).toBe("Deep Work Pomodoro (50/10)");
+      expect(cleanTitle("⚡ Classic Pomodoro Sprint (25/5)")).toBe("Classic Pomodoro Sprint (25/5)");
+      expect(cleanTitle("🌧️ Midnight Lofi & Rain Cafe")).toBe("Midnight Lofi & Rain Cafe");
+      expect(cleanTitle("💻 Group Study & Screenshare")).toBe("Group Study & Screenshare");
+    });
+
+    it("strips trailing emojis and regional flags", () => {
+      expect(cleanTitle("Vietnam Campus 🇻🇳")).toBe("Vietnam Campus");
+      expect(cleanTitle("Global Commons 🌐")).toBe("Global Commons");
+      expect(cleanTitle("Tokyo Atelier 🇯🇵")).toBe("Tokyo Atelier");
+      expect(cleanTitle("Americas Hub 🇺🇸")).toBe("Americas Hub");
+      expect(cleanTitle("Europe Library 🇪🇺")).toBe("Europe Library");
+      expect(cleanTitle("All Regions 🗺️")).toBe("All Regions");
+    });
+
+    it("returns clean strings unchanged", () => {
+      expect(cleanTitle("Focus Room 101")).toBe("Focus Room 101");
+      expect(cleanTitle("Workstation (Silent)")).toBe("Workstation (Silent)");
+    });
+  });
+
+  describe("getServerIcon", () => {
+    it("returns semantic icon names for regional servers", () => {
+      expect(getServerIcon("vietnam")).toBe("compass");
+      expect(getServerIcon("japan-korea")).toBe("sparkles");
+      expect(getServerIcon("north-america")).toBe("laptop");
+      expect(getServerIcon("europe")).toBe("library");
+      expect(getServerIcon("global")).toBe("globe");
     });
   });
 

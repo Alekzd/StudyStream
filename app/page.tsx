@@ -8,7 +8,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@clerk/nextjs";
 
 export default function LandingPage() {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const { isSignedIn } = useAuth();
 
   return (
@@ -32,7 +32,7 @@ export default function LandingPage() {
                 href={isSignedIn ? "/explore" : "/sign-in"}
                 className="px-4 py-1.5 bg-brass-500 hover:bg-brass-600 text-espresso-950 text-xs font-mono font-bold rounded-xl transition-all shadow-sm"
               >
-                {isSignedIn ? (language === "vi" ? "Vào Trạm" : "Launch App") : (language === "vi" ? "Đăng nhập" : "Sign In")}
+                {isSignedIn ? "Launch App" : "Sign In"}
               </Link>
             </div>
           </div>
@@ -40,24 +40,9 @@ export default function LandingPage() {
 
         {/* Hero Section */}
         <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-12 sm:py-20 text-center max-w-4xl mx-auto">
-          {/* Atelier Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-espresso-900/90 border border-espresso-700/80 text-brass-400 text-xs font-mono mb-6 shadow-sm">
-            <AppIcon name="sparkles" size={14} />
-            <span>The Midnight Espresso Atelier</span>
-          </div>
-
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold font-sans text-crema-100 tracking-tight leading-tight max-w-3xl mb-5">
-            {language === "vi" ? (
-              <>
-                Không gian làm việc sâu <br />
-                <span className="text-brass-400">cùng đĩa than Jazz & cà phê.</span>
-              </>
-            ) : (
-              <>
-                Deep focus sanctuary for <br />
-                <span className="text-brass-400">coffeeholics & workaholics.</span>
-              </>
-            )}
+            Học tập tập trung cùng nhau qua <br />
+            <span className="text-brass-400">Webcam & Pomodoro</span>
           </h1>
 
           <p className="text-sm sm:text-lg text-crema-400 max-w-2xl leading-relaxed mb-8 sm:mb-10 font-sans">
@@ -71,7 +56,7 @@ export default function LandingPage() {
               className="w-full sm:w-auto px-8 py-3.5 bg-bourbon-500 hover:bg-bourbon-600 text-crema-50 font-bold rounded-xl text-sm sm:text-base font-mono transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
             >
               <AppIcon name="coffee" size={18} />
-              <span>{language === "vi" ? "Vào Trạm Làm Việc Ngay" : "Enter Workstation"}</span>
+              <span>{t("room_enter")}</span>
             </Link>
             <Link
               href="/explore"
@@ -82,19 +67,17 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          {/* Core Pillars Feature Grid */}
+          {/* Core Features */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-16 sm:mt-24 w-full text-left">
             <div className="p-5 rounded-2xl bg-espresso-900/80 border border-espresso-700/80 backdrop-blur-sm">
-              <div className="w-10 h-10 rounded-xl bg-brass-500/10 border border-brass-500/30 flex items-center justify-center text-brass-400 mb-3.5">
-                <AppIcon name="jazz" size={22} />
+              <div className="w-10 h-10 rounded-xl bg-patina-500/10 border border-patina-500/30 flex items-center justify-center text-patina-400 mb-3.5">
+                <AppIcon name="videoOn" size={22} />
               </div>
               <h3 className="font-bold text-sm text-crema-100 mb-1.5">
-                {language === "vi" ? "Espresso & Vinyl Jazz" : "Espresso & Vinyl Jazz"}
+                Học qua Webcam
               </h3>
               <p className="text-xs text-crema-400 leading-relaxed">
-                {language === "vi"
-                  ? "Âm thanh máy nén cà phê, tiếng kim đĩa than và phím cơ tactile loại bỏ hoàn toàn lofi buồn ngủ."
-                  : "Authentic coffee extraction, vinyl crackle and mechanical keystrokes replacing sleepy lofi."}
+                Bật camera cùng mọi người để tạo kỷ luật tự giác, hạn chế xao nhãng.
               </p>
             </div>
 
@@ -103,34 +86,42 @@ export default function LandingPage() {
                 <AppIcon name="clock" size={22} />
               </div>
               <h3 className="font-bold text-sm text-crema-100 mb-1.5">
-                {language === "vi" ? "Chronograph Pomodoro" : "Chronograph Pomodoro"}
+                Đồng hồ Pomodoro
               </h3>
               <p className="text-xs text-crema-400 leading-relaxed">
-                {language === "vi"
-                  ? "Bộ đếm nhịp giây chuẩn xác như đồng hồ cơ Thụy Sĩ, đồng bộ theo thời gian thực với toàn phòng."
-                  : "Server-authoritative mechanical cadence clock keeping the entire desk in deep flow."}
+                Đồng bộ thời gian học và nghỉ ngơi tự động cho tất cả thành viên trong phòng.
               </p>
             </div>
 
             <div className="p-5 rounded-2xl bg-espresso-900/80 border border-espresso-700/80 backdrop-blur-sm">
-              <div className="w-10 h-10 rounded-xl bg-patina-500/10 border border-patina-500/30 flex items-center justify-center text-patina-400 mb-3.5">
-                <AppIcon name="videoOn" size={22} />
+              <div className="w-10 h-10 rounded-xl bg-brass-500/10 border border-brass-500/30 flex items-center justify-center text-brass-400 mb-3.5">
+                <AppIcon name="headphones" size={22} />
               </div>
               <h3 className="font-bold text-sm text-crema-100 mb-1.5">
-                {language === "vi" ? "Body Doubling Tối Giản" : "Zero-Distraction Video"}
+                Âm thanh nền tập trung
               </h3>
               <p className="text-xs text-crema-400 leading-relaxed">
-                {language === "vi"
-                  ? "Khung hình camera thích ứng LiveKit, triệt tiêu xao nhãng để bạn luôn thấy đồng đội đang nỗ lực."
-                  : "LiveKit adaptive stream grid for peer accountability without distracting UI clutter."}
+                Tiếng mưa, quán cà phê, lửa trại giúp bạn dễ dàng duy trì sự tập trung sâu.
               </p>
             </div>
           </div>
         </main>
 
         {/* Footer */}
-        <footer className="w-full border-t border-espresso-700/80 py-6 px-4 text-center text-xs font-mono text-crema-600">
-          <p>StudyStream OS — Designed for Deep Workers & Coffeeholics.</p>
+        <footer className="w-full border-t border-espresso-750/80 py-6 px-4 bg-espresso-950/60 backdrop-blur-sm">
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-crema-600">
+            <div className="flex items-center gap-2">
+              <AppIcon name="coffee" size={15} className="text-brass-500" />
+              <span>StudyStream — Virtual Study Space</span>
+            </div>
+
+            <div className="flex items-center gap-4 text-crema-400">
+              <span className="flex items-center gap-1.5 text-patina-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-patina-400" />
+                Dùng ngay trên trình duyệt
+              </span>
+            </div>
+          </div>
         </footer>
       </div>
     </BannerBackground>

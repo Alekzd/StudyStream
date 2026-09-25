@@ -1,4 +1,4 @@
-name: StudyStream OS — CI Pipeline
+name: StudyStream — CI Pipeline
 
 on:
   push:

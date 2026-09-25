@@ -1,6 +1,6 @@
 "use client";
 // app/providers.tsx
-// StudyStream OS — Convex + Clerk combined provider
+// StudyStream — Convex + Clerk combined provider
 
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient, useMutation } from "convex/react";

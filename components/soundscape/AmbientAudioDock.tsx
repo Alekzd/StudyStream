@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { soundscape } from "@/lib/soundscape";
+import { soundscape, AUDIO_PRESETS, type AudioPreset } from "@/lib/soundscape";
 import { AppIcon } from "@/components/ui/Icon";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface AmbientAudioDockProps {
   onClose?: () => void;
@@ -11,40 +12,28 @@ interface AmbientAudioDockProps {
   className?: string;
 }
 
-interface QuickTrack {
-  id: string;
-  label: string;
-  icon: string;
-  defaultVol: number;
-}
-
-const QUICK_TRACKS: QuickTrack[] = [
-  { id: "espresso", label: "Espresso", icon: "coffee", defaultVol: 0.35 },
-  { id: "rain", label: "Rain", icon: "rain", defaultVol: 0.4 },
-  { id: "jazz", label: "Jazz", icon: "jazz", defaultVol: 0.35 },
-  { id: "fireplace", label: "Fire", icon: "fire", defaultVol: 0.3 },
-];
-
 export function AmbientAudioDock({
   onClose,
   onOpenFullMixer,
   className,
 }: AmbientAudioDockProps) {
-  const [volumes, setVolumes] = useState<Record<string, number>>({});
+  const { t, language } = useLanguage();
+  const isVi = language === "vi";
+
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [masterVol, setMasterVol] = useState(35);
+  const [customUrl, setCustomUrl] = useState<string | null>(null);
+  const [customInput, setCustomInput] = useState("");
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
 
   useEffect(() => {
     const syncState = () => {
-      const v: Record<string, number> = {};
-      QUICK_TRACKS.forEach((t) => {
-        v[t.id] = soundscape.getVolume(t.id);
-      });
-      setVolumes(v);
       setIsMuted(soundscape.getIsMuted());
       setIsPlaying(soundscape.isPlayingAny());
       setMasterVol(soundscape.getMasterVolume());
+      setCustomUrl(soundscape.getCustomUrl());
+      setActivePresetId(soundscape.getActivePresetId());
     };
 
     syncState();
@@ -52,15 +41,8 @@ export function AmbientAudioDock({
     return unsub;
   }, []);
 
-  const handleToggleTrack = (track: QuickTrack) => {
-    const current = volumes[track.id] ?? 0;
-    if (current > 0 && !isMuted) {
-      soundscape.setVolume(track.id, 0);
-    } else {
-      if (isMuted) soundscape.toggleMuteAll();
-      const targetVol = masterVol > 0 ? masterVol / 100 : track.defaultVol;
-      soundscape.setVolume(track.id, targetVol);
-    }
+  const handleApplyPreset = (preset: AudioPreset) => {
+    soundscape.applyPreset(preset.id);
   };
 
   const handleMasterTogglePlay = () => {
@@ -76,11 +58,21 @@ export function AmbientAudioDock({
     soundscape.setMasterVolume(val);
   };
 
+  const handlePlayCustomUrl = () => {
+    if (!customInput.trim()) return;
+    soundscape.setCustomAudio(customInput.trim());
+    setCustomInput("");
+  };
+
+  const handleClearCustomUrl = () => {
+    soundscape.setCustomAudio(null);
+  };
+
   return (
     <div
       className={cn(
         "select-none w-80 p-3.5 rounded-2xl bg-espresso-900/95 border border-espresso-700/80 shadow-2xl backdrop-blur-md",
-        "animate-pip-in flex flex-col gap-3 transition-spring pointer-events-auto",
+        "animate-pip-in flex flex-col gap-2.5 transition-spring pointer-events-auto",
         className
       )}
       role="region"
@@ -91,8 +83,15 @@ export function AmbientAudioDock({
         <div className="flex items-center gap-2">
           <AppIcon name="headphones" size={17} className="text-brass-400" />
           <span className="text-sm font-semibold text-crema-100 tracking-tight">
-            Ambient Audio
+            {t("soundscape_title")}
           </span>
+          {isPlaying && (
+            <span className="flex items-end gap-0.5 h-2.5 shrink-0 px-0.5">
+              <span className="w-0.5 h-2 bg-brass-400 rounded-full animate-pulse" />
+              <span className="w-0.5 h-3 bg-brass-400 rounded-full animate-pulse delay-75" />
+              <span className="w-0.5 h-1.5 bg-brass-400 rounded-full animate-pulse delay-150" />
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -106,8 +105,8 @@ export function AmbientAudioDock({
                 ? "text-bourbon-400 hover:bg-espresso-800"
                 : "text-crema-400 hover:text-crema-100 hover:bg-espresso-800"
             )}
-            title={isMuted ? "Unmute soundscape" : "Mute soundscape"}
-            aria-label={isMuted ? "Unmute soundscape" : "Mute soundscape"}
+            title={isMuted ? t("sound_unmute_all") : t("sound_mute_all")}
+            aria-label={isMuted ? t("sound_unmute_all") : t("sound_mute_all")}
           >
             <AppIcon name={isMuted ? "volumeMute" : "volumeUp"} size={15} />
           </button>
@@ -122,8 +121,8 @@ export function AmbientAudioDock({
                 ? "bg-brass-500 text-espresso-950 font-bold"
                 : "bg-espresso-800 text-crema-200 hover:text-crema-50 hover:bg-espresso-750 border border-espresso-700"
             )}
-            title={isPlaying ? "Pause ambient soundscape" : "Play ambient soundscape"}
-            aria-label={isPlaying ? "Pause ambient soundscape" : "Play ambient soundscape"}
+            title={isPlaying ? "Pause audio" : "Play audio"}
+            aria-label={isPlaying ? "Pause audio" : "Play audio"}
           >
             <AppIcon name={isPlaying ? "pause" : "play"} size={14} />
           </button>
@@ -143,40 +142,124 @@ export function AmbientAudioDock({
         </div>
       </div>
 
-      {/* ─── Middle: Quick Track Chips (Espresso, Rain, Jazz, Fire) ─── */}
-      <div className="grid grid-cols-4 gap-1.5">
-        {QUICK_TRACKS.map((t) => {
-          const vol = volumes[t.id] ?? 0;
-          const active = vol > 0 && !isMuted;
+      {/* ─── 4 Curated Audio Presets (Strictly 1 track at a time) ─── */}
+      <div className="grid grid-cols-2 gap-1.5">
+        {AUDIO_PRESETS.map((preset) => {
+          const isActive = activePresetId === preset.id && isPlaying && !isMuted;
 
           return (
             <button
-              key={t.id}
+              key={preset.id}
               type="button"
-              onClick={() => handleToggleTrack(t)}
+              onClick={() => handleApplyPreset(preset)}
               className={cn(
-                "flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all text-center cursor-pointer hover-spring",
-                active
+                "flex items-center gap-2 p-2 rounded-xl text-left transition-all cursor-pointer hover-spring",
+                isActive
                   ? "bg-brass-500/20 text-brass-300 border border-brass-500/60 shadow-sm"
-                  : "bg-espresso-800/70 text-crema-400 border border-espresso-700/60 hover:text-crema-200 hover:bg-espresso-800"
+                  : "bg-espresso-800/70 text-crema-300 border border-espresso-700/60 hover:text-crema-100 hover:bg-espresso-800"
               )}
-              title={`${t.label}: ${active ? `On (${Math.round(vol * 100)}%)` : "Off"}`}
+              title={preset.desc}
             >
               <AppIcon
-                name={t.icon}
-                size={18}
-                className={active ? "text-brass-400" : "text-crema-400"}
+                name={preset.icon}
+                size={16}
+                className={isActive ? "text-brass-400 shrink-0" : "text-crema-500 shrink-0"}
               />
-              <span className="text-[11px] font-medium mt-1 tracking-tight">
-                {t.label}
-              </span>
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold truncate leading-tight">
+                  {preset.name}
+                </div>
+                <div className="text-[9px] font-mono text-crema-500 truncate">
+                  {preset.type === "youtube" ? "24/7 Stream" : "Ambient Loop"}
+                </div>
+              </div>
             </button>
           );
         })}
       </div>
 
+      {/* ─── Prominent YouTube Stream Controls & Quick Streams ─── */}
+      <div className="p-2 rounded-xl bg-espresso-950/70 border border-espresso-750/70 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-bourbon-400">
+            <AppIcon name="youtube" size={14} />
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-crema-200">
+              {t("sound_youtube_title")}
+            </span>
+          </div>
+          {soundscape.getYoutubeVideoId() && (
+            <span className="text-[9px] font-mono font-bold text-bourbon-400 bg-bourbon-500/15 border border-bourbon-500/30 px-1 rounded flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-bourbon-400 animate-pulse" />
+              LIVE
+            </span>
+          )}
+        </div>
+
+        {/* Active YouTube Status Bar */}
+        {customUrl ? (
+          <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-bourbon-950/40 border border-bourbon-500/40 text-[10px]">
+            <div className="flex items-center gap-1.5 min-w-0 pr-1">
+              <AppIcon name="youtube" size={12} className="text-bourbon-400 shrink-0" />
+              <span className="font-mono text-bourbon-200 truncate" title={customUrl}>
+                {customUrl.replace(/^https?:\/\/(www\.)?/, "")}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleClearCustomUrl}
+              className="text-bourbon-400 hover:text-bourbon-200 font-bold px-1 rounded shrink-0 cursor-pointer"
+              title="Stop audio"
+            >
+              ✕ {t("sound_youtube_stop")}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1">
+            <input
+              type="text"
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handlePlayCustomUrl();
+              }}
+              placeholder={t("sound_custom_placeholder")}
+              className="flex-1 px-2 py-1 text-[10px] text-crema-100 placeholder:text-crema-600 bg-espresso-900 rounded border border-espresso-700/80 focus:border-bourbon-500/60 focus:outline-none font-mono"
+            />
+            <button
+              type="button"
+              onClick={handlePlayCustomUrl}
+              className="px-2.5 py-1 rounded bg-bourbon-500 text-espresso-950 text-[10px] font-bold hover:bg-bourbon-400 transition-colors shrink-0 cursor-pointer"
+            >
+              {t("sound_youtube_play")}
+            </button>
+          </div>
+        )}
+
+        {/* Quick Stream Buttons */}
+        <div className="grid grid-cols-2 gap-1 pt-0.5">
+          <button
+            type="button"
+            onClick={() => soundscape.setCustomAudio("https://www.youtube.com/watch?v=jfKfPfyJRdk")}
+            className="px-1.5 py-1 rounded bg-espresso-850/80 hover:bg-espresso-800 text-[9px] font-mono text-crema-400 hover:text-crema-100 border border-espresso-750 text-left truncate flex items-center gap-1 cursor-pointer"
+            title="Lofi Girl 24/7 Study"
+          >
+            <span className="w-1 h-1 rounded-full bg-bourbon-400 shrink-0" />
+            <span className="truncate">Lofi Girl 24/7</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => soundscape.setCustomAudio("https://www.youtube.com/watch?v=5qap5aO4i9A")}
+            className="px-1.5 py-1 rounded bg-espresso-850/80 hover:bg-espresso-800 text-[9px] font-mono text-crema-400 hover:text-crema-100 border border-espresso-750 text-left truncate flex items-center gap-1 cursor-pointer"
+            title="Rain on Window"
+          >
+            <span className="w-1 h-1 rounded-full bg-patina-400 shrink-0" />
+            <span className="truncate">Rain on Window</span>
+          </button>
+        </div>
+      </div>
+
       {/* ─── Bottom: Master Volume Slider + Percentage ─── */}
-      <div className="flex items-center gap-3 pt-0.5">
+      <div className="flex items-center gap-3 pt-1 border-t border-espresso-800/80">
         <input
           type="range"
           min="0"
@@ -198,7 +281,7 @@ export function AmbientAudioDock({
           onClick={onOpenFullMixer}
           className="text-[11px] text-crema-500 hover:text-brass-400 transition-colors text-center cursor-pointer mt-0.5"
         >
-          Detailed soundboard & presets →
+          {isVi ? "Bảng fader chi tiết →" : "Detailed soundboard & faders →"}
         </button>
       )}
     </div>

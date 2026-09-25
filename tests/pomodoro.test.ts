@@ -68,7 +68,7 @@ function simulateAutoTransitionPhase(
   };
 }
 
-describe("StudyStream OS — Pomodoro Cadence & Sync Logic", () => {
+describe("StudyStream — Pomodoro Cadence & Sync Logic", () => {
   describe("Cadence parser & defaults", () => {
     it("correctly parses standard 50/10 Deep Work cadence", () => {
       const cadence = "50/10";

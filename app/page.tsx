@@ -8,8 +8,9 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@clerk/nextjs";
 
 export default function LandingPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { isSignedIn } = useAuth();
+  const isVi = language === "vi";
 
   return (
     <BannerBackground opacity={0.35}>
@@ -22,7 +23,7 @@ export default function LandingPage() {
                 <AppIcon name="coffee" size={20} />
               </div>
               <span className="font-mono font-bold text-base sm:text-lg text-crema-100 tracking-tight">
-                StudyStream <span className="text-brass-500 text-xs font-normal">OS</span>
+                StudyStream
               </span>
             </div>
 
@@ -32,7 +33,7 @@ export default function LandingPage() {
                 href={isSignedIn ? "/explore" : "/sign-in"}
                 className="px-4 py-1.5 bg-brass-500 hover:bg-brass-600 text-espresso-950 text-xs font-mono font-bold rounded-xl transition-all shadow-sm"
               >
-                {isSignedIn ? "Launch App" : "Sign In"}
+                {isSignedIn ? (isVi ? "Vào ứng dụng" : "Launch App") : (isVi ? "Đăng nhập" : "Sign In")}
               </Link>
             </div>
           </div>
@@ -41,8 +42,8 @@ export default function LandingPage() {
         {/* Hero Section */}
         <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-12 sm:py-20 text-center max-w-4xl mx-auto">
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold font-sans text-crema-100 tracking-tight leading-tight max-w-3xl mb-5">
-            Học tập tập trung cùng nhau qua <br />
-            <span className="text-brass-400">Webcam & Pomodoro</span>
+            {t("landing_hero_h1")} <br />
+            <span className="text-brass-400">{t("landing_hero_h1_span")}</span>
           </h1>
 
           <p className="text-sm sm:text-lg text-crema-400 max-w-2xl leading-relaxed mb-8 sm:mb-10 font-sans">
@@ -74,10 +75,10 @@ export default function LandingPage() {
                 <AppIcon name="videoOn" size={22} />
               </div>
               <h3 className="font-bold text-sm text-crema-100 mb-1.5">
-                Học qua Webcam
+                {t("landing_feature_webcam_title")}
               </h3>
               <p className="text-xs text-crema-400 leading-relaxed">
-                Bật camera cùng mọi người để tạo kỷ luật tự giác, hạn chế xao nhãng.
+                {t("landing_feature_webcam_desc")}
               </p>
             </div>
 
@@ -86,10 +87,10 @@ export default function LandingPage() {
                 <AppIcon name="clock" size={22} />
               </div>
               <h3 className="font-bold text-sm text-crema-100 mb-1.5">
-                Đồng hồ Pomodoro
+                {t("landing_feature_pomo_title")}
               </h3>
               <p className="text-xs text-crema-400 leading-relaxed">
-                Đồng bộ thời gian học và nghỉ ngơi tự động cho tất cả thành viên trong phòng.
+                {t("landing_feature_pomo_desc")}
               </p>
             </div>
 
@@ -98,10 +99,10 @@ export default function LandingPage() {
                 <AppIcon name="headphones" size={22} />
               </div>
               <h3 className="font-bold text-sm text-crema-100 mb-1.5">
-                Âm thanh nền tập trung
+                {t("landing_feature_sound_title")}
               </h3>
               <p className="text-xs text-crema-400 leading-relaxed">
-                Tiếng mưa, quán cà phê, lửa trại giúp bạn dễ dàng duy trì sự tập trung sâu.
+                {t("landing_feature_sound_desc")}
               </p>
             </div>
           </div>
@@ -118,7 +119,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-4 text-crema-400">
               <span className="flex items-center gap-1.5 text-patina-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-patina-400" />
-                Dùng ngay trên trình duyệt
+                {isVi ? "Dùng ngay trên trình duyệt" : "Pure web-based — No installation required"}
               </span>
             </div>
           </div>

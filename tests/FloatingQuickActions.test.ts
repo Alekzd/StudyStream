@@ -45,4 +45,32 @@ describe("RoomPiPDock Component & ActiveRoomContext", () => {
   });
 });
 
+describe("Audio Presets and YouTube Extraction", () => {
+  it("extracts 11-char YouTube video ID from various URL formats", async () => {
+    const { extractYouTubeId } = await import("@/lib/soundscape");
+    expect(extractYouTubeId("https://www.youtube.com/watch?v=jfKfPfyJRdk")).toBe("jfKfPfyJRdk");
+    expect(extractYouTubeId("https://youtu.be/jfKfPfyJRdk")).toBe("jfKfPfyJRdk");
+    expect(extractYouTubeId("https://www.youtube.com/live/jfKfPfyJRdk?feature=share")).toBe("jfKfPfyJRdk");
+    expect(extractYouTubeId("https://www.youtube.com/embed/jfKfPfyJRdk")).toBe("jfKfPfyJRdk");
+    expect(extractYouTubeId("https://www.youtube.com/shorts/jfKfPfyJRdk")).toBe("jfKfPfyJRdk");
+    expect(extractYouTubeId("jfKfPfyJRdk")).toBe("jfKfPfyJRdk");
+    expect(extractYouTubeId("invalid-url")).toBeNull();
+  });
+
+  it("exports 4 core audio presets with valid metadata", async () => {
+    const { AUDIO_PRESETS } = await import("@/lib/soundscape");
+    expect(AUDIO_PRESETS.length).toBe(4);
+    AUDIO_PRESETS.forEach((preset) => {
+      expect(preset.id).toBeDefined();
+      expect(preset.name).toBeDefined();
+      expect(preset.icon).toBeDefined();
+    });
+  });
+
+  it("exports GlobalAudioRenderer component", async () => {
+    const { GlobalAudioRenderer } = await import("@/components/soundscape/GlobalAudioRenderer");
+    expect(typeof GlobalAudioRenderer).toBe("function");
+  });
+});
+
 

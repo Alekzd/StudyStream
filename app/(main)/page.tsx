@@ -1,5 +1,5 @@
 // app/(main)/page.tsx
-// StudyStream OS — Dashboard / Home (redirect to explore or first server)
+// StudyStream — Dashboard / Home (redirect to explore or first server)
 
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";

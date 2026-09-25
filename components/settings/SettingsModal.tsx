@@ -166,10 +166,12 @@ export function SettingsModal({
             <div className="space-y-3">
               <div>
                 <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-crema-400 mb-1">
-                  Active Regional Server
+                  {isVi ? "Máy Chủ Khu Vực Đang Hoạt Động" : "Active Regional Server"}
                 </h3>
                 <p className="text-xs text-crema-400 leading-relaxed">
-                  Switching country servers connects you to local or international study rooms matching your preferred timezone.
+                  {isVi
+                    ? "Chuyển đổi máy chủ khu vực giúp kết nối đến các phòng học phù hợp với múi giờ của bạn."
+                    : "Switching country servers connects you to local or international study rooms matching your preferred timezone."}
                 </p>
               </div>
 
@@ -190,16 +192,16 @@ export function SettingsModal({
                   </div>
                   <div>
                     <div className="font-bold text-sm text-crema-100 font-sans">
-                      All Study Regions (Global View)
+                      {isVi ? "Tất Cả Khu Vực (Toàn Cầu)" : "All Study Regions (Global View)"}
                     </div>
                     <div className="text-[11px] text-crema-400">
-                      Display all public workstations across all countries
+                      {isVi ? "Hiển thị tất cả phòng học công khai từ mọi quốc gia" : "Display all public workstations across all countries"}
                     </div>
                   </div>
                 </div>
                 {selectedServerId === "ALL" && (
                   <span className="text-[11px] font-mono font-bold text-brass-400 bg-brass-500/15 px-2 py-0.5 rounded">
-                    Active
+                    {isVi ? "Đang chọn" : "Active"}
                   </span>
                 )}
               </button>
@@ -237,7 +239,7 @@ export function SettingsModal({
 
                       {isSelected && (
                         <span className="text-[11px] font-mono font-bold text-brass-400 bg-brass-500/15 px-2 py-0.5 rounded shrink-0 ml-2">
-                          Active
+                          {isVi ? "Đang chọn" : "Active"}
                         </span>
                       )}
                     </button>

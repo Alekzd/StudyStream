@@ -1,5 +1,5 @@
 // lib/mockStream.ts
-// StudyStream OS — Canvas Mock Media Stream Generator
+// StudyStream — Canvas Mock Media Stream Generator
 // Allows developers to test multi-party video grids and latency on a single machine
 // Reference: 07_Sandbox_Testing_and_Local_Verification.md
 

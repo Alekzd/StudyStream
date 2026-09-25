@@ -1,5 +1,5 @@
 // app/(main)/servers/[serverId]/rooms/[roomId]/page.tsx
-// StudyStream OS — Room view page (video grid + pomodoro + chat)
+// StudyStream — Room view page (video grid + pomodoro + chat)
 
 import { RoomView } from "@/components/room/RoomView";
 

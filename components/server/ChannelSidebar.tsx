@@ -1,13 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter, usePathname } from "next/navigation";
-import { cn, getArchetypeIcon, getArchetypeColor, cleanTitle } from "@/lib/utils";
+import { cn, getArchetypeIcon, cleanTitle } from "@/lib/utils";
 import { AppIcon } from "@/components/ui/Icon";
 import { CreateRoomModal } from "./CreateRoomModal";
 import { Id } from "@/convex/_generated/dataModel";
 import { useLanguage } from "@/context/LanguageContext";
+import { useActiveRoom } from "@/context/ActiveRoomContext";
 import { SkeletonPulse, MotionButton } from "@/components/ui/motion";
 
 interface ChannelSidebarProps {
@@ -26,7 +28,17 @@ export function ChannelSidebar({ serverId }: ChannelSidebarProps) {
   });
   const router = useRouter();
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { activeRoom, leaveActiveRoom } = useActiveRoom();
+  const [pendingSwitchRoom, setPendingSwitchRoom] = useState<{ id: string; name: string } | null>(null);
+
+  const handleRoomClick = (targetRoomId: string, targetRoomName: string) => {
+    if (activeRoom && activeRoom.roomId !== targetRoomId) {
+      setPendingSwitchRoom({ id: targetRoomId, name: targetRoomName });
+      return;
+    }
+    router.push(`/servers/${serverId}/rooms/${targetRoomId}`);
+  };
 
   if (!server) {
     return (
@@ -88,23 +100,24 @@ export function ChannelSidebar({ serverId }: ChannelSidebarProps) {
                 return (
                   <button
                     key={room._id}
-                    onClick={() =>
-                      router.push(`/servers/${serverId}/rooms/${room._id}`)
-                    }
+                    onClick={() => handleRoomClick(room._id, room.name)}
                     className={cn(
-                      "flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-xs md:text-sm transition-all duration-150 text-left",
+                      "group flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-xs md:text-sm transition-all duration-150 text-left cursor-pointer",
                       isActive
                         ? "bg-espresso-800 text-brass-300 font-semibold border border-espresso-700 shadow-sm"
                         : "text-crema-400 hover:bg-espresso-850 hover:text-crema-200"
                     )}
                   >
                     {room.isLocked ? (
-                      <AppIcon name="lock" size={12} className="text-crema-600 shrink-0" />
+                      <AppIcon name="lock" size={13} className="text-bourbon-400 shrink-0" />
                     ) : (
                       <AppIcon
                         name={getArchetypeIcon(room.archetype)}
                         size={14}
-                        className={cn(getArchetypeColor(room.archetype), "shrink-0")}
+                        className={cn(
+                          "shrink-0 transition-colors",
+                          isActive ? "text-brass-300" : "text-crema-500 group-hover:text-crema-200"
+                        )}
                       />
                     )}
                     <span className="truncate flex-1">
@@ -131,21 +144,26 @@ export function ChannelSidebar({ serverId }: ChannelSidebarProps) {
             return (
               <button
                 key={room._id}
-                onClick={() =>
-                  router.push(`/servers/${serverId}/rooms/${room._id}`)
-                }
+                onClick={() => handleRoomClick(room._id, room.name)}
                 className={cn(
-                  "flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-xs md:text-sm transition-all duration-150 text-left",
+                  "group flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-xs md:text-sm transition-all duration-150 text-left cursor-pointer",
                   isActive
                     ? "bg-espresso-800 text-brass-300 font-semibold border border-espresso-700 shadow-sm"
                     : "text-crema-400 hover:bg-espresso-850 hover:text-crema-200"
                 )}
               >
-                <AppIcon
-                  name={getArchetypeIcon(room.archetype)}
-                  size={14}
-                  className={cn(getArchetypeColor(room.archetype), "shrink-0")}
-                />
+                {room.isLocked ? (
+                  <AppIcon name="lock" size={13} className="text-bourbon-400 shrink-0" />
+                ) : (
+                  <AppIcon
+                    name={getArchetypeIcon(room.archetype)}
+                    size={14}
+                    className={cn(
+                      "shrink-0 transition-colors",
+                      isActive ? "text-brass-300" : "text-crema-500 group-hover:text-crema-200"
+                    )}
+                  />
+                )}
                 <span className="truncate flex-1">
                   {cleanTitle(room.name)}
                 </span>
@@ -153,6 +171,46 @@ export function ChannelSidebar({ serverId }: ChannelSidebarProps) {
             );
           })}
       </div>
+
+      {/* Room Switch Restraint Confirmation Modal */}
+      {pendingSwitchRoom && activeRoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-espresso-950/85 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-sm p-4 bg-espresso-900 border border-bourbon-500/60 rounded-2xl shadow-2xl space-y-3 animate-pop-in">
+            <div className="flex items-center gap-2 text-bourbon-400">
+              <AppIcon name="logout" size={18} />
+              <h3 className="font-bold text-crema-100 text-sm">
+                {language === "vi" ? "Đang trong phòng học" : "Active in Another Room"}
+              </h3>
+            </div>
+            <p className="text-xs text-crema-300 font-mono leading-relaxed">
+              {language === "vi"
+                ? `Bạn đang tham gia phòng "${cleanTitle(activeRoom.roomName)}". Bạn có muốn rời phòng cũ để chuyển sang "${cleanTitle(pendingSwitchRoom.name)}" không?`
+                : `You are currently in "${cleanTitle(activeRoom.roomName)}". Do you want to leave it and switch to "${cleanTitle(pendingSwitchRoom.name)}"?`}
+            </p>
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setPendingSwitchRoom(null)}
+                className="flex-1 py-2 px-3 rounded-xl bg-espresso-800 hover:bg-espresso-750 text-crema-300 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                {language === "vi" ? "Ở lại phòng cũ" : "Stay in current"}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const targetId = pendingSwitchRoom.id;
+                  setPendingSwitchRoom(null);
+                  await leaveActiveRoom();
+                  router.push(`/servers/${serverId}/rooms/${targetId}`);
+                }}
+                className="flex-1 py-2 px-3 rounded-xl bg-brass-500 hover:bg-brass-400 text-espresso-950 text-xs font-bold transition-all shadow-md cursor-pointer"
+              >
+                {language === "vi" ? "Rời & Chuyển phòng" : "Leave & Switch"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

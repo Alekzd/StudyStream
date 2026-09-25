@@ -8,7 +8,7 @@ import { useUser } from "@clerk/nextjs";
 import { StudyVideoGrid } from "./StudyVideoGrid";
 import { PomodoroTimer } from "@/components/pomodoro/PomodoroTimer";
 import { ChatDrawer } from "./ChatDrawer";
-import { getArchetypeLabel, getArchetypeColor, cn, cleanTitle } from "@/lib/utils";
+import { getArchetypeLabel, cn, cleanTitle } from "@/lib/utils";
 import { AppIcon } from "@/components/ui/Icon";
 import { BannerBackground } from "@/components/ui/BannerBackground";
 import { useLanguage } from "@/context/LanguageContext";
@@ -19,6 +19,12 @@ import { PageTransition, MotionButton, AtelierLoader } from "@/components/ui/mot
 interface RoomViewProps {
   serverId: string;
   roomId: string;
+}
+
+export interface StudyTask {
+  id: string;
+  text: string;
+  completed: boolean;
 }
 
 export function RoomView({ serverId, roomId }: RoomViewProps) {
@@ -42,12 +48,30 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
   const { activeRoom, setActiveRoom } = useActiveRoom();
   const isCurrentActiveRoom = activeRoom?.roomId === roomId;
 
-  const [localToken, setLocalToken] = useState<string | null>(null);
-  const [localUrl, setLocalUrl] = useState<string | null>(null);
+  const [localToken, setLocalToken] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem(`studystream_lk_token_${roomId}`);
+    }
+    return null;
+  });
+  const [localUrl, setLocalUrl] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem(`studystream_lk_url_${roomId}`);
+    }
+    return null;
+  });
 
   // Derived token & url: immediately active if user is returning to their active room session
-  const livekitToken = (isCurrentActiveRoom ? activeRoom?.livekitToken : null) || localToken;
-  const livekitUrl = (isCurrentActiveRoom ? activeRoom?.livekitUrl : null) || localUrl;
+  const livekitToken = isCurrentActiveRoom
+    ? (activeRoom?.livekitToken || localToken)
+    : activeRoom
+    ? null
+    : localToken;
+  const livekitUrl = isCurrentActiveRoom
+    ? (activeRoom?.livekitUrl || localUrl)
+    : activeRoom
+    ? null
+    : localUrl;
 
   const [error, setError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
@@ -56,10 +80,72 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
   const [isSensoryFriendly, setIsSensoryFriendly] = useState(false);
   const [showDiagnosticHUD, setShowDiagnosticHUD] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
   const [passwordInput, setPasswordInput] = useState("");
-  const [intention, setIntention] = useState("");
-  const [isEditingIntention, setIsEditingIntention] = useState(false);
-  const [isGoalCompleted, setIsGoalCompleted] = useState(false);
+  const [tasks, setTasks] = useState<StudyTask[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem(`studystream_tasks_${roomId}`);
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return [];
+  });
+  const [isTaskListOpen, setIsTaskListOpen] = useState(false);
+  const [newTaskText, setNewTaskText] = useState("");
+
+  const syncTaskIntention = (updatedTasks: StudyTask[]) => {
+    setTasks(updatedTasks);
+    try {
+      localStorage.setItem(`studystream_tasks_${roomId}`, JSON.stringify(updatedTasks));
+    } catch {}
+
+    const uncompleted = updatedTasks.find((t) => !t.completed);
+    const completedCount = updatedTasks.filter((t) => t.completed).length;
+    const totalCount = updatedTasks.length;
+
+    let intentionStr: string | undefined = undefined;
+    if (totalCount > 0) {
+      if (uncompleted) {
+        intentionStr =
+          totalCount > 1
+            ? `${uncompleted.text} [${completedCount}/${totalCount}]`
+            : uncompleted.text;
+      } else {
+        intentionStr = `✓ ${language === "vi" ? "Hoàn thành tất cả" : "All goals done"} [${totalCount}/${totalCount}]`;
+      }
+    }
+
+    updateMediaState({
+      roomId: roomId as Id<"rooms">,
+      currentIntention: intentionStr,
+    }).catch(() => {});
+  };
+
+  const handleAddTask = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const newTask: StudyTask = {
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
+      text: trimmed,
+      completed: false,
+    };
+    const updated = [...tasks, newTask];
+    syncTaskIntention(updated);
+    setNewTaskText("");
+  };
+
+  const handleToggleTask = (taskId: string) => {
+    const updated = tasks.map((t) =>
+      t.id === taskId ? { ...t, completed: !t.completed } : t
+    );
+    syncTaskIntention(updated);
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    const updated = tasks.filter((t) => t.id !== taskId);
+    syncTaskIntention(updated);
+  };
 
   const myRole = (server as { myRole?: string } | null | undefined)?.myRole;
   const isRoomHost = Boolean(room?.currentHostId && currentUser?._id === room.currentHostId);
@@ -89,16 +175,31 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
         archetype: room.archetype,
       });
 
+      const currentTasks = tasks;
+      const activeTask = currentTasks.find((t) => !t.completed);
+      const initialIntention =
+        currentTasks.length > 0
+          ? activeTask
+            ? currentTasks.length > 1
+              ? `${activeTask.text} [0/${currentTasks.length}]`
+              : activeTask.text
+            : `✓ ${language === "vi" ? "Hoàn thành tất cả" : "All goals done"}`
+          : undefined;
+
       await joinRoom({
         roomId: roomId as Id<"rooms">,
         serverId: serverId as Id<"servers">,
         liveKitIdentity: user.id,
-        currentIntention: intention.trim() || undefined,
+        currentIntention: initialIntention,
         password: passwordInput.trim() || undefined,
       });
 
       setLocalToken(token);
       setLocalUrl(serverUrl);
+      try {
+        sessionStorage.setItem(`studystream_lk_token_${roomId}`, token);
+        sessionStorage.setItem(`studystream_lk_url_${roomId}`, serverUrl);
+      } catch {}
 
       setActiveRoom((prev) => ({
         roomId,
@@ -117,6 +218,28 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
       setIsJoining(false);
     }
   };
+
+  // Auto-connect into room seamlessly (skip redundant pre-join lobby)
+  useEffect(() => {
+    if (!room || !user || !currentUser) return;
+    if (livekitToken || isJoining || error) return;
+
+    // Restraint: Do NOT auto-join if user is already active in a DIFFERENT room!
+    if (activeRoom && !isCurrentActiveRoom) {
+      return;
+    }
+
+    // Only hold if room is password-locked and user is not host and not already active
+    if (room.isLocked && !isRoomHost && !isCurrentActiveRoom && !passwordInput.trim()) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      handleEnterRoom();
+    }, 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room, user, currentUser, livekitToken, isJoining, error, isRoomHost, isCurrentActiveRoom, activeRoom]);
 
   useEffect(() => {
     if (room && livekitToken) {
@@ -144,6 +267,10 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
   }, [room, livekitToken, livekitUrl, roomId, serverId, setActiveRoom]);
 
   const handleLeaveRoom = async () => {
+    try {
+      sessionStorage.removeItem(`studystream_lk_token_${roomId}`);
+      sessionStorage.removeItem(`studystream_lk_url_${roomId}`);
+    } catch {}
     try {
       await leaveRoom({ roomId: roomId as Id<"rooms"> });
     } catch {}
@@ -176,99 +303,135 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
     );
   }
 
-  const archetypeColor = getArchetypeColor(room.archetype);
   const archetypeLabel = getArchetypeLabel(room.archetype, language);
 
-  // Pre-join Screen (The Entrance to The Atelier)
-  if (!livekitToken) {
+  // Restraint Guard: If user is active in a DIFFERENT room, require explicit confirmation before switching!
+  if (activeRoom && !isCurrentActiveRoom) {
     return (
       <BannerBackground opacity={0.4}>
-        <PageTransition className="flex flex-col items-center justify-center flex-1 h-full px-4 sm:px-8 py-8 gap-6 text-center select-none">
-          <div className="w-16 h-16 rounded-2xl bg-espresso-900 border border-espresso-700 flex items-center justify-center text-brass-500 shadow-xl">
-            <AppIcon name="coffee" size={32} />
+        <PageTransition className="flex flex-col items-center justify-center flex-1 h-full px-4 sm:px-8 py-8 gap-5 text-center select-none">
+          <div className="w-14 h-14 rounded-2xl bg-espresso-900 border border-bourbon-500/50 flex items-center justify-center text-bourbon-400 shadow-xl">
+            <AppIcon name="logout" size={28} />
           </div>
 
-          <div className="max-w-md">
-            <h1 className="text-2xl sm:text-3xl font-bold text-crema-100 mb-2 font-sans tracking-tight">
-              {cleanTitle(room.name)}
+          <div className="max-w-md w-full space-y-2">
+            <h1 className="text-xl font-bold text-crema-100 font-sans tracking-tight">
+              {language === "vi" ? "Đang trong phòng học khác" : "Active In Another Room"}
             </h1>
-            <p className={cn("text-xs sm:text-sm font-mono font-semibold tracking-wider uppercase", archetypeColor)}>
-              {archetypeLabel}
+            <p className="text-xs text-crema-400 font-mono leading-relaxed">
+              {language === "vi"
+                ? `Bạn đang tham gia phòng "${cleanTitle(activeRoom.roomName)}". Bạn có muốn rời phòng cũ để chuyển sang "${cleanTitle(room.name)}" không?`
+                : `You are currently in "${cleanTitle(activeRoom.roomName)}". Do you want to leave it and switch to "${cleanTitle(room.name)}"?`}
             </p>
+          </div>
 
-            {room.archetype === "SILENT_FOCUS" && (
-              <p className="text-crema-400 text-xs mt-3 bg-espresso-900/80 px-4 py-2 rounded-xl border border-espresso-700/80 leading-relaxed flex items-center justify-center gap-2">
-                <AppIcon name="micOff" size={15} className="text-bourbon-400 shrink-0" />
-                <span>{t("room_silent_notice")}</span>
+          <div className="flex flex-col sm:flex-row items-center gap-2 w-full max-w-xs">
+            <button
+              type="button"
+              onClick={() => router.push(`/servers/${activeRoom.serverId}/rooms/${activeRoom.roomId}`)}
+              className="w-full py-2 px-3 rounded-xl bg-espresso-850 hover:bg-espresso-800 text-crema-200 border border-espresso-700 text-xs font-semibold transition-colors cursor-pointer"
+            >
+              {language === "vi" ? `← Quay lại ${cleanTitle(activeRoom.roomName)}` : `← Return to ${cleanTitle(activeRoom.roomName)}`}
+            </button>
+            <MotionButton
+              variant="brass"
+              size="md"
+              isLoading={isJoining}
+              onClick={async () => {
+                await leaveRoom({ roomId: activeRoom.roomId as Id<"rooms"> }).catch(() => {});
+                handleEnterRoom();
+              }}
+              className="w-full text-xs font-semibold shadow-md cursor-pointer"
+            >
+              <span>{language === "vi" ? "Rời & Chuyển phòng" : "Leave & Switch"}</span>
+            </MotionButton>
+          </div>
+        </PageTransition>
+      </BannerBackground>
+    );
+  }
+
+  // Seamless Connection & Password Check (Skips redundant pre-join lobby)
+  if (!livekitToken) {
+    if (room.isLocked && !isRoomHost && !isCurrentActiveRoom) {
+      return (
+        <BannerBackground opacity={0.4}>
+          <PageTransition className="flex flex-col items-center justify-center flex-1 h-full px-4 sm:px-8 py-8 gap-5 text-center select-none">
+            <div className="w-14 h-14 rounded-2xl bg-espresso-900 border border-bourbon-500/50 flex items-center justify-center text-bourbon-400 shadow-xl">
+              <AppIcon name="lock" size={28} />
+            </div>
+
+            <div className="max-w-xs w-full space-y-3">
+              <h1 className="text-xl font-bold text-crema-100 font-sans tracking-tight">
+                {cleanTitle(room.name)}
+              </h1>
+              <p className="text-xs text-bourbon-300 font-mono">
+                {language === "vi" ? "Phòng khóa • Cần mật khẩu để tham gia" : "Locked room • Password required"}
               </p>
-            )}
 
-            {room.isLocked && (
-              <div className="mt-3 flex flex-col items-center gap-2 max-w-xs w-full mx-auto">
-                <div className="w-full px-3 py-1.5 bg-bourbon-950/60 border border-bourbon-500/40 rounded-xl text-bourbon-300 text-xs font-mono flex items-center justify-center gap-2">
-                  <AppIcon name="lock" size={14} className="text-bourbon-400 shrink-0" />
-                  <span>{language === "vi" ? "Phòng riêng tư (Yêu cầu mật khẩu)" : "Locked workstation (Password required)"}</span>
-                </div>
-
-                {!isRoomHost && (
-                  <div className="w-full space-y-1 text-left">
-                    <label className="text-[10px] font-mono uppercase tracking-wider text-crema-400 block text-center">
-                      {language === "vi" ? "Nhập mật khẩu để vào:" : "Enter password to join:"}
-                    </label>
-                    <input
-                      type="password"
-                      value={passwordInput}
-                      onChange={(e) => setPasswordInput(e.target.value)}
-                      placeholder={language === "vi" ? "Mật khẩu phòng..." : "Room password..."}
-                      className="w-full px-3 py-2.5 bg-espresso-900 border border-espresso-700 rounded-xl text-crema-100 placeholder:text-crema-600 focus:outline-none focus:border-brass-500 text-center font-mono"
-                      style={{ fontSize: "16px" }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleEnterRoom();
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Optional Study Intention Input */}
-            <div className="w-full max-w-xs mx-auto space-y-1 text-left mt-3">
               <input
-                type="text"
-                value={intention}
-                onChange={(e) => setIntention(e.target.value)}
-                placeholder={language === "vi" ? "🎯 Mục tiêu buổi học (ví dụ: 5 đề Toán)..." : "🎯 Study goal (e.g. 3 chapters)..."}
-                className="w-full px-3 py-2.5 bg-espresso-900/80 border border-espresso-700/80 rounded-xl text-crema-100 placeholder:text-crema-600 focus:outline-none focus:border-brass-500 text-center font-mono transition-colors"
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder={language === "vi" ? "Mật khẩu phòng..." : "Room password..."}
+                className="w-full px-3 py-2.5 bg-espresso-900 border border-espresso-700 rounded-xl text-crema-100 placeholder:text-crema-600 focus:outline-none focus:border-brass-500 text-center font-mono"
                 style={{ fontSize: "16px" }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleEnterRoom();
                 }}
+                autoFocus
               />
-            </div>
-          </div>
 
+              {error && (
+                <div className="px-3 py-1.5 bg-bourbon-950/70 border border-bourbon-500/50 rounded-xl text-bourbon-400 text-xs text-center font-mono">
+                  {error}
+                </div>
+              )}
+
+              <MotionButton
+                variant="brass"
+                size="md"
+                isLoading={isJoining}
+                onClick={handleEnterRoom}
+                className="w-full shadow-md cursor-pointer"
+              >
+                <span>{language === "vi" ? "Vào phòng" : "Join Room"}</span>
+              </MotionButton>
+            </div>
+          </PageTransition>
+        </BannerBackground>
+      );
+    }
+
+    // Auto-connecting seamless state
+    return (
+      <BannerBackground opacity={0.4}>
+        <div className="flex flex-col items-center justify-center flex-1 h-full gap-4 text-center select-none">
+          <AtelierLoader />
+          <div className="space-y-1">
+            <h2 className="text-base font-bold text-crema-100">
+              {cleanTitle(room.name)}
+            </h2>
+            <p className="text-xs font-mono text-crema-400 animate-pulse">
+              {language === "vi" ? "Đang kết nối vào phòng học..." : "Connecting to study room..."}
+            </p>
+          </div>
           {error && (
-            <div className="px-4 py-2.5 bg-bourbon-700/30 border border-bourbon-500/50 rounded-xl text-bourbon-400 text-xs sm:text-sm max-w-sm text-center">
-              {error}
+            <div className="mt-2 text-xs text-bourbon-400 bg-bourbon-950/60 px-3 py-1.5 rounded-lg border border-bourbon-500/40 flex items-center gap-2">
+              <span>{error}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  handleEnterRoom();
+                }}
+                className="underline font-semibold text-crema-200 cursor-pointer"
+              >
+                {language === "vi" ? "Thử lại" : "Retry"}
+              </button>
             </div>
           )}
-
-          <MotionButton
-            variant="brass"
-            size="lg"
-            isLoading={isJoining}
-            leftIcon={!isJoining ? <AppIcon name="videoOn" size={20} /> : undefined}
-            onClick={handleEnterRoom}
-            disabled={!user}
-            className="px-8 shadow-lg shadow-brass-900/30"
-          >
-            <span>{isJoining ? t("room_connecting") : t("room_enter")}</span>
-          </MotionButton>
-
-          <p className="text-crema-600 text-xs font-mono hidden sm:block">
-            {t("room_fullscreen_hint")}
-          </p>
-        </PageTransition>
+        </div>
       </BannerBackground>
     );
   }
@@ -396,72 +559,197 @@ export function RoomView({ serverId, roomId }: RoomViewProps) {
         </div>
       </div>
 
-      {/* ─── Integrated Study Goal Focus Bar ─── */}
+      {/* ─── Integrated Study Goals & Task List Bar ─── */}
       <div
         className={cn(
-          "flex items-center justify-between px-2.5 sm:px-4 py-1.5 bg-espresso-950/95 border-b border-espresso-800/70 text-xs font-mono shrink-0 transition-opacity select-none",
+          "relative flex items-center justify-between px-2.5 sm:px-4 py-1.5 bg-espresso-950/95 border-b border-espresso-800/70 text-xs font-mono shrink-0 transition-opacity select-none z-30",
           isFullscreen && "opacity-0 hover:opacity-100"
         )}
       >
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <span className="text-sm shrink-0">🎯</span>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <AppIcon name="target" size={14} className="text-brass-400 shrink-0" />
           <span className="text-[10px] font-semibold uppercase tracking-wider text-brass-400 shrink-0 hidden xs:inline">
-            {language === "vi" ? "Mục tiêu:" : "Study Goal:"}
+            {language === "vi" ? "Mục tiêu:" : "Study Goals:"}
           </span>
-          {isEditingIntention ? (
-            <input
-              type="text"
-              autoFocus
-              value={intention}
-              onChange={(e) => setIntention(e.target.value)}
-              onBlur={() => {
-                setIsEditingIntention(false);
-                updateMediaState({
-                  roomId: roomId as Id<"rooms">,
-                  currentIntention: intention.trim() || undefined,
-                }).catch(() => {});
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  setIsEditingIntention(false);
-                  updateMediaState({
-                    roomId: roomId as Id<"rooms">,
-                    currentIntention: intention.trim() || undefined,
-                  }).catch(() => {});
-                }
-              }}
-              placeholder={language === "vi" ? "Nhập mục tiêu học tập (ví dụ: 5 đề Toán)..." : "Study goal (e.g. 5 math tests)..."}
-              className="px-2 py-0.5 rounded bg-espresso-850 border border-brass-500/60 text-crema-100 text-xs font-mono w-full max-w-sm focus:outline-none"
-              style={{ fontSize: "16px" }}
-            />
-          ) : (
-            <button
-              onClick={() => setIsEditingIntention(true)}
-              className="flex items-center gap-1 text-left text-crema-200 hover:text-brass-300 transition-colors truncate group cursor-pointer min-w-0 flex-1"
-              title={language === "vi" ? "Nhấp để đổi mục tiêu học tập" : "Click to edit study goal"}
-            >
-              <span className={cn("truncate text-xs font-medium", isGoalCompleted && "line-through text-crema-500")}>
-                {intention.trim() || (language === "vi" ? "Chưa đặt mục tiêu — Nhấp để thêm" : "No goal set — Click to add")}
+
+          <button
+            type="button"
+            onClick={() => setIsTaskListOpen((v) => !v)}
+            className="flex items-center gap-1.5 text-left text-crema-200 hover:text-brass-300 transition-colors truncate group cursor-pointer min-w-0 flex-1 py-0.5"
+            title={language === "vi" ? "Mở danh sách mục tiêu" : "Open task list"}
+          >
+            {tasks.length > 0 ? (
+              <span className="truncate flex items-center gap-2">
+                <span className={cn("truncate text-xs font-medium", tasks.every((t) => t.completed) && "line-through text-patina-400")}>
+                  {tasks.find((t) => !t.completed)?.text || (language === "vi" ? "✓ Đã hoàn thành mọi mục tiêu!" : "✓ All goals completed!")}
+                </span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-espresso-850 border border-espresso-700/80 text-brass-400 font-bold shrink-0">
+                  {tasks.filter((t) => t.completed).length}/{tasks.length}
+                </span>
               </span>
-              <AppIcon name="edit" size={11} className="text-crema-600 group-hover:text-brass-400 shrink-0 ml-0.5" />
-            </button>
-          )}
+            ) : (
+              <span className="text-xs text-crema-500 italic flex items-center gap-1 group-hover:text-brass-400">
+                <span>{language === "vi" ? "Chưa có mục tiêu — Nhấp để thêm" : "No goals set — Click to add"}</span>
+                <AppIcon name="plus" size={11} className="shrink-0" />
+              </span>
+            )}
+            <AppIcon name="edit" size={11} className="text-crema-600 group-hover:text-brass-400 shrink-0 ml-0.5" />
+          </button>
         </div>
 
-        {intention.trim() && (
+        {/* Quick Done / Manage Button */}
+        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+          {tasks.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                const uncompleted = tasks.find((t) => !t.completed);
+                if (uncompleted) {
+                  handleToggleTask(uncompleted.id);
+                } else if (tasks.length > 0) {
+                  handleToggleTask(tasks[0].id);
+                }
+              }}
+              className={cn(
+                "flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold transition-all shrink-0 cursor-pointer",
+                tasks.every((t) => t.completed)
+                  ? "bg-patina-500/20 text-patina-300 border border-patina-500/50"
+                  : "bg-espresso-850 text-crema-400 hover:text-crema-200 border border-espresso-700/80"
+              )}
+              title={tasks.every((t) => t.completed) ? (language === "vi" ? "Mọi mục tiêu đã hoàn thành!" : "All tasks finished!") : (language === "vi" ? "Đánh dấu xong mục tiêu hiện tại" : "Complete current task")}
+            >
+              <AppIcon name="check" size={11} className={tasks.every((t) => t.completed) ? "text-patina-400" : "text-crema-500"} />
+              <span>{tasks.every((t) => t.completed) ? (language === "vi" ? "Đã xong" : "Done") : (language === "vi" ? "Xong việc này" : "Mark done")}</span>
+            </button>
+          )}
+
           <button
-            onClick={() => setIsGoalCompleted((v) => !v)}
+            type="button"
+            onClick={() => setIsTaskListOpen((v) => !v)}
             className={cn(
-              "flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold transition-all shrink-0 ml-2 cursor-pointer",
-              isGoalCompleted
-                ? "bg-patina-500/20 text-patina-300 border border-patina-500/50"
-                : "bg-espresso-850 text-crema-400 hover:text-crema-200 border border-espresso-700/80"
+              "px-2 py-0.5 rounded-md text-[10px] font-mono font-medium transition-colors flex items-center gap-1 cursor-pointer",
+              isTaskListOpen
+                ? "bg-brass-500 text-espresso-950 font-bold"
+                : "bg-espresso-900 hover:bg-espresso-850 text-crema-300 border border-espresso-750"
             )}
-            title={isGoalCompleted ? (language === "vi" ? "Đã hoàn thành mục tiêu!" : "Goal completed!") : (language === "vi" ? "Đánh dấu hoàn thành" : "Mark as done")}
           >
-            <AppIcon name="check" size={11} className={isGoalCompleted ? "text-patina-400" : "text-crema-500"} />
-            <span>{isGoalCompleted ? (language === "vi" ? "Đã xong" : "Done") : (language === "vi" ? "Hoàn thành" : "Finish")}</span>
+            <AppIcon name="list" size={11} />
+            <span>{language === "vi" ? "Danh sách" : "Task List"}</span>
           </button>
+        </div>
+
+        {/* ── Popover: Task List Dropdown ── */}
+        {isTaskListOpen && (
+          <div className="absolute top-full left-2 sm:left-4 mt-1 w-80 sm:w-96 max-w-[calc(100vw-2rem)] p-3 rounded-2xl bg-espresso-900/98 border border-brass-500/50 shadow-2xl backdrop-blur-md z-50 flex flex-col gap-2.5 animate-pip-in">
+            <div className="flex items-center justify-between pb-1 border-b border-espresso-750/80">
+              <div className="flex items-center gap-1.5 text-brass-400 font-bold text-xs">
+                <AppIcon name="target" size={14} />
+                <span>{language === "vi" ? "Danh Sách Mục Tiêu" : "Study Task List"}</span>
+                {tasks.length > 0 && (
+                  <span className="text-[10px] font-mono text-crema-400 font-normal">
+                    ({tasks.filter((t) => t.completed).length}/{tasks.length})
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTaskListOpen(false)}
+                className="w-5 h-5 rounded-md flex items-center justify-center text-crema-500 hover:text-crema-200 transition-colors cursor-pointer"
+              >
+                <AppIcon name="close" size={12} />
+              </button>
+            </div>
+
+            {/* Quick Add Input */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAddTask(newTaskText);
+              }}
+              className="flex items-center gap-1.5"
+            >
+              <input
+                type="text"
+                value={newTaskText}
+                onChange={(e) => setNewTaskText(e.target.value)}
+                placeholder={language === "vi" ? "Thêm mục tiêu mới (Enter)..." : "Add new task (press Enter)..."}
+                className="flex-1 px-2.5 py-1.5 rounded-lg bg-espresso-950 border border-espresso-750 text-crema-100 text-xs placeholder:text-crema-600 focus:outline-none focus:border-brass-500 font-mono"
+                style={{ fontSize: "16px" }}
+              />
+              <button
+                type="submit"
+                disabled={!newTaskText.trim()}
+                className="px-2.5 py-1.5 rounded-lg bg-brass-500 hover:bg-brass-600 disabled:opacity-40 text-espresso-950 text-xs font-mono font-bold transition-all shrink-0 cursor-pointer"
+              >
+                {language === "vi" ? "Thêm" : "Add"}
+              </button>
+            </form>
+
+            {/* Tasks Scrollable List */}
+            <div className="flex flex-col gap-1 max-h-48 overflow-y-auto pr-1">
+              {tasks.length === 0 ? (
+                <div className="text-center py-4 text-xs text-crema-600 italic">
+                  {language === "vi" ? "Chưa có mục tiêu nào. Hãy thêm mục tiêu đầu tiên!" : "No tasks added yet. Add your first goal above!"}
+                </div>
+              ) : (
+                tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-espresso-850/80 border border-transparent hover:border-espresso-750/70 transition-colors group"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleToggleTask(task.id)}
+                      className="flex items-center gap-2 text-left flex-1 min-w-0 cursor-pointer"
+                    >
+                      <div
+                        className={cn(
+                          "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                          task.completed
+                            ? "bg-patina-500 border-patina-400 text-espresso-950"
+                            : "border-espresso-600 group-hover:border-brass-400"
+                        )}
+                      >
+                        {task.completed && <AppIcon name="check" size={10} />}
+                      </div>
+                      <span
+                        className={cn(
+                          "text-xs truncate transition-all",
+                          task.completed ? "line-through text-crema-600" : "text-crema-200"
+                        )}
+                      >
+                        {task.text}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTask(task.id)}
+                      className="w-5 h-5 rounded flex items-center justify-center text-crema-600 hover:text-bourbon-400 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                      title={language === "vi" ? "Xóa mục tiêu này" : "Delete task"}
+                    >
+                      <AppIcon name="trash" size={11} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Clear completed button */}
+            {tasks.some((t) => t.completed) && (
+              <div className="flex justify-end pt-1 border-t border-espresso-800/80">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const activeOnly = tasks.filter((t) => !t.completed);
+                    syncTaskIntention(activeOnly);
+                  }}
+                  className="text-[10px] text-crema-500 hover:text-crema-300 font-mono transition-colors cursor-pointer"
+                >
+                  {language === "vi" ? "Xóa các mục đã xong" : "Clear completed"}
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

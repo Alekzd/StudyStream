@@ -107,7 +107,7 @@ export function StudyVideoGrid({
         serverUrl={serverUrl}
         connect={true}
         data-lk-theme="default"
-        className="h-full w-full relative"
+        className="h-full w-full relative overflow-hidden"
         style={{
           "--lk-bg": "#0c0a09",
           "--lk-border-color": "#2b231e",
@@ -237,8 +237,8 @@ function PinnableTile({
       {/* Study Goal Badge on Tile */}
       {intention && (
         <div className="absolute top-2 left-2 z-10 max-w-[85%] pointer-events-none animate-pip-in">
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-espresso-950/85 border border-brass-500/40 text-[10px] font-mono text-brass-300 shadow-md backdrop-blur-sm truncate">
-            <span className="shrink-0 text-[11px]">🎯</span>
+          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-espresso-950/85 border border-brass-500/40 text-[10px] font-mono text-brass-300 shadow-md backdrop-blur-sm truncate">
+            <AppIcon name="target" size={12} className="shrink-0 text-brass-400" />
             <span className="truncate">{intention}</span>
           </span>
         </div>

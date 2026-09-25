@@ -24,14 +24,12 @@ export function SidebarAudioWidget({ compact = false }: SidebarAudioWidgetProps)
 
   useEffect(() => {
     const syncState = () => {
-      let anyPlaying = false;
       let highestVolTrack = "espresso";
       let highestVol = 0;
 
       SOUND_TRACKS.forEach((track) => {
         const vol = soundscape.getVolume(track.id);
         if (vol > 0) {
-          anyPlaying = true;
           if (vol > highestVol) {
             highestVol = vol;
             highestVolTrack = track.id;
@@ -39,9 +37,19 @@ export function SidebarAudioWidget({ compact = false }: SidebarAudioWidgetProps)
         }
       });
 
-      setIsPlaying(anyPlaying && !soundscape.getIsMuted());
+      const customActive = Boolean(soundscape.getCustomUrl());
+      const presetId = soundscape.getActivePresetId();
+
+      setIsPlaying(soundscape.isPlayingAny());
       setIsMuted(soundscape.getIsMuted());
-      if (highestVol > 0) {
+
+      if (customActive) {
+        setActiveTrackId("custom");
+        setVolume(soundscape.getMasterVolume());
+      } else if (presetId) {
+        setActiveTrackId(presetId);
+        setVolume(soundscape.getMasterVolume());
+      } else if (highestVol > 0) {
         setActiveTrackId(highestVolTrack);
         setVolume(Math.round(highestVol * 100));
       }
@@ -53,34 +61,32 @@ export function SidebarAudioWidget({ compact = false }: SidebarAudioWidgetProps)
   }, []);
 
   const togglePlay = () => {
-    if (isPlaying) {
-      // Turn off all tracks
-      SOUND_TRACKS.forEach((t) => soundscape.setVolume(t.id, 0));
-      setIsPlaying(false);
-    } else {
-      // Play selected active track at current volume
-      SOUND_TRACKS.forEach((t) => soundscape.setVolume(t.id, 0));
-      const targetVol = volume > 0 ? volume / 100 : 0.35;
-      soundscape.setVolume(activeTrackId, targetVol);
-      if (isMuted) soundscape.toggleMuteAll();
-      setIsPlaying(true);
-    }
+    soundscape.togglePlayPauseAll();
   };
+
+  const [showYtInput, setShowYtInput] = useState(false);
+  const [ytInputVal, setYtInputVal] = useState("");
+  const youtubeVideoId = soundscape.getYoutubeVideoId();
 
   const selectMood = (trackId: string) => {
     setActiveTrackId(trackId);
-    SOUND_TRACKS.forEach((t) => soundscape.setVolume(t.id, 0));
-    const targetVol = volume > 0 ? volume / 100 : 0.35;
-    soundscape.setVolume(trackId, targetVol);
-    if (isMuted) soundscape.toggleMuteAll();
-    setIsPlaying(true);
+    soundscape.playSingleTrack(trackId, volume > 0 ? volume / 100 : 0.35);
+  };
+
+  const handlePlayYouTube = () => {
+    if (!ytInputVal.trim()) return;
+    soundscape.setCustomAudio(ytInputVal.trim());
+    setYtInputVal("");
+    setShowYtInput(false);
+  };
+
+  const handleStopYouTube = () => {
+    soundscape.setCustomAudio(null);
   };
 
   const handleVolumeChange = (newVol: number) => {
     setVolume(newVol);
-    if (isPlaying) {
-      soundscape.setVolume(activeTrackId, newVol / 100);
-    }
+    soundscape.setMasterVolume(newVol);
   };
 
   const toggleMute = () => {
@@ -89,7 +95,11 @@ export function SidebarAudioWidget({ compact = false }: SidebarAudioWidgetProps)
   };
 
   const activeMoodName =
-    QUICK_MOODS.find((m) => m.id === activeTrackId)?.label || "Ambience";
+    youtubeVideoId
+      ? "YouTube Audio"
+      : activeTrackId === "custom"
+      ? "Custom Audio"
+      : QUICK_MOODS.find((m) => m.id === activeTrackId)?.label || "Ambience";
 
   if (compact) {
     return (
@@ -121,7 +131,7 @@ export function SidebarAudioWidget({ compact = false }: SidebarAudioWidgetProps)
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 min-w-0">
           <div className="w-5 h-5 rounded-md bg-espresso-800 flex items-center justify-center text-brass-400 shrink-0">
-            <AppIcon name="headphones" size={12} />
+            <AppIcon name={youtubeVideoId ? "videoOn" : "headphones"} size={12} />
           </div>
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="text-[11px] font-medium text-crema-200 truncate">
@@ -139,8 +149,21 @@ export function SidebarAudioWidget({ compact = false }: SidebarAudioWidgetProps)
 
         <div className="flex items-center gap-1">
           <button
+            onClick={() => setShowYtInput((v) => !v)}
+            className={cn(
+              "p-1 rounded text-xs transition-colors cursor-pointer",
+              showYtInput || youtubeVideoId
+                ? "text-bourbon-400 bg-espresso-800"
+                : "text-crema-600 hover:text-crema-200"
+            )}
+            title="YouTube Stream"
+            aria-label="YouTube Stream"
+          >
+            <AppIcon name="youtube" size={13} />
+          </button>
+          <button
             onClick={toggleMute}
-            className="p-1 text-crema-600 hover:text-crema-200 rounded transition-colors"
+            className="p-1 text-crema-600 hover:text-crema-200 rounded transition-colors cursor-pointer"
             title={isMuted ? "Unmute" : "Mute"}
             aria-label="Toggle mute"
           >
@@ -149,7 +172,7 @@ export function SidebarAudioWidget({ compact = false }: SidebarAudioWidgetProps)
           <button
             onClick={togglePlay}
             className={cn(
-              "w-6 h-6 rounded-md flex items-center justify-center transition-colors text-xs font-bold shrink-0",
+              "w-6 h-6 rounded-md flex items-center justify-center transition-colors text-xs font-bold shrink-0 cursor-pointer",
               isPlaying
                 ? "bg-brass-500 text-espresso-950 shadow-sm"
                 : "bg-espresso-750 text-crema-300 hover:bg-espresso-700 hover:text-crema-100"
@@ -166,16 +189,81 @@ export function SidebarAudioWidget({ compact = false }: SidebarAudioWidgetProps)
         </div>
       </div>
 
-      {/* Quick Mood Selector Pills */}
+      {/* YouTube Link Input Bar */}
+      {showYtInput && (
+        <div className="flex flex-col gap-1 p-1 bg-espresso-900 rounded-lg border border-espresso-700/80 animate-pop-in">
+          <div className="flex items-center gap-1">
+            <input
+              type="text"
+              value={ytInputVal}
+              onChange={(e) => setYtInputVal(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handlePlayYouTube();
+                if (e.key === "Escape") setShowYtInput(false);
+              }}
+              placeholder="Paste YouTube link / ID..."
+              className="flex-1 px-1.5 py-0.5 text-[10px] text-crema-100 placeholder:text-crema-600 bg-transparent focus:outline-none font-mono"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={handlePlayYouTube}
+              className="px-2 py-0.5 rounded bg-bourbon-500 text-espresso-950 text-[10px] font-bold hover:bg-bourbon-400 transition-colors shrink-0 cursor-pointer"
+            >
+              Play
+            </button>
+          </div>
+          <div className="flex items-center gap-1 text-[9px] font-mono text-crema-500 pt-0.5 border-t border-espresso-800">
+            <span className="shrink-0 text-bourbon-400">24/7:</span>
+            <button
+              type="button"
+              onClick={() => {
+                soundscape.setCustomAudio("https://www.youtube.com/watch?v=jfKfPfyJRdk");
+                setShowYtInput(false);
+              }}
+              className="px-1 py-0.5 rounded bg-espresso-800 hover:bg-espresso-750 text-crema-300 truncate cursor-pointer"
+            >
+              Lofi Girl
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                soundscape.setCustomAudio("https://www.youtube.com/watch?v=5qap5aO4i9A");
+                setShowYtInput(false);
+              }}
+              className="px-1 py-0.5 rounded bg-espresso-800 hover:bg-espresso-750 text-crema-300 truncate cursor-pointer"
+            >
+              Rain Lofi
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Active YouTube Stream Pill */}
+      {youtubeVideoId && !showYtInput && (
+        <div className="flex items-center justify-between px-2 py-1 bg-bourbon-950/40 border border-bourbon-500/40 rounded-lg text-[10px] font-mono text-bourbon-300">
+          <span className="truncate pr-1">🔴 YouTube: {youtubeVideoId}</span>
+          <button
+            type="button"
+            onClick={handleStopYouTube}
+            className="text-bourbon-400 hover:text-bourbon-200 font-bold px-1"
+            title="Dừng phát YouTube"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Quick Mood Selector Pills (Mutually Exclusive) */}
       <div className="grid grid-cols-4 gap-1">
         {QUICK_MOODS.map((mood) => {
-          const isSelected = activeTrackId === mood.id && isPlaying;
+          const isSelected = activeTrackId === mood.id && isPlaying && !youtubeVideoId;
           return (
             <button
               key={mood.id}
               onClick={() => selectMood(mood.id)}
               className={cn(
-                "flex flex-col items-center justify-center py-1 rounded-lg text-[10px] font-mono transition-all",
+                "flex flex-col items-center justify-center py-1 rounded-lg text-[10px] font-mono transition-all cursor-pointer",
                 isSelected
                   ? "bg-brass-500/20 text-brass-300 border border-brass-500/40 font-semibold"
                   : "bg-espresso-900/60 text-crema-400 hover:bg-espresso-800 hover:text-crema-200 border border-espresso-800"

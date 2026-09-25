@@ -4,7 +4,7 @@ import React from "react";
 import { Icon as IconifyIcon } from "@iconify/react";
 
 /**
- * StudyStream OS — Unified Semantic Icon Registry
+ * StudyStream — Unified Semantic Icon Registry
  * Standardized on high-clarity Phosphor (`ph:`) and Solar (`solar:`) icon collections.
  * Every single entry has been verified against installed icon packages (@iconify-json/ph, @iconify-json/solar).
  */
@@ -102,6 +102,7 @@ export const ICON_MAP = {
   search: "solar:magnifier-bold",
   filter: "solar:filter-bold",
   grid: "ph:grid-four-bold",
+  list: "ph:list-bullets-bold",
   copy: "solar:copy-bold",
   share: "solar:share-circle-bold",
   externalLink: "ph:arrow-square-out-bold",

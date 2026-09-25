@@ -1,5 +1,5 @@
 // app/(main)/explore/page.tsx
-// StudyStream OS — Explore Public Workstations
+// StudyStream — Explore Public Workstations
 "use client";
 
 import { useQuery } from "convex/react";
@@ -18,13 +18,30 @@ import {
 } from "@/components/ui/motion";
 
 import { useLanguage } from "@/context/LanguageContext";
+import { useActiveRoom } from "@/context/ActiveRoomContext";
+import { useState } from "react";
 
 export default function ExplorePage() {
   const { t, language } = useLanguage();
   const isVi = language === "vi";
+  const { activeRoom, leaveActiveRoom } = useActiveRoom();
+  const [pendingSwitchRoom, setPendingSwitchRoom] = useState<{
+    serverId: string;
+    id: string;
+    name: string;
+  } | null>(null);
+
   const rooms = useQuery(api.rooms.getAllRooms);
   const dashboardSync = useQuery(api.users.getDashboardSync);
   const router = useRouter();
+
+  const handleRoomClick = (targetServerId: string, targetRoomId: string, targetRoomName: string) => {
+    if (activeRoom && activeRoom.roomId !== targetRoomId) {
+      setPendingSwitchRoom({ serverId: targetServerId, id: targetRoomId, name: targetRoomName });
+      return;
+    }
+    router.push(`/servers/${targetServerId}/rooms/${targetRoomId}`);
+  };
 
   return (
     <BannerBackground opacity={0.3}>
@@ -122,17 +139,19 @@ export default function ExplorePage() {
                 <AppIcon name="coffee" size={32} />
               </div>
               <p className="text-crema-100 text-base sm:text-lg font-semibold font-sans">
-                No active workstations found.
+                {isVi ? "Chưa có trạm học nào đang mở." : "No active workstations found."}
               </p>
               <p className="text-crema-400 text-xs sm:text-sm max-w-sm leading-relaxed">
-                Be the first to open a study room for today&apos;s focus session.
+                {isVi
+                  ? "Hãy là người đầu tiên mở trạm học cho phiên tập trung hôm nay."
+                  : "Be the first to open a study room for today's focus session."}
               </p>
               <CreateRoomModal onCreated={(roomId) => {
                 const room = rooms?.find(r => r._id === roomId);
                 if (room) router.push(`/servers/${room.serverId}/rooms/${room._id}`);
               }}>
                 <MotionButton variant="brass" size="sm" className="mt-2">
-                  <span>Open First Workstation</span>
+                  <span>{isVi ? "Mở trạm học đầu tiên" : "Open First Workstation"}</span>
                 </MotionButton>
               </CreateRoomModal>
             </div>
@@ -141,7 +160,7 @@ export default function ExplorePage() {
               {rooms.map((room) => (
                 <StaggerItem key={room._id}>
                   <div
-                    onClick={() => router.push(`/servers/${room.serverId}/rooms/${room._id}`)}
+                    onClick={() => handleRoomClick(room.serverId, room._id, room.name)}
                     className="group relative flex flex-col justify-between p-4 rounded-2xl bg-espresso-900/80 hover:bg-espresso-850 border border-espresso-750/80 hover:border-brass-500/50 transition-all cursor-pointer shadow-md hover:shadow-xl hover:-translate-y-0.5"
                   >
                     <div>
@@ -152,7 +171,7 @@ export default function ExplorePage() {
                           getArchetypeColor(room.archetype)
                         )}>
                           <AppIcon name={getArchetypeIcon(room.archetype)} size={13} />
-                          <span>{getArchetypeLabel(room.archetype)}</span>
+                          <span>{getArchetypeLabel(room.archetype, language)}</span>
                         </span>
 
                         <span className={cn(
@@ -164,12 +183,12 @@ export default function ExplorePage() {
                           {room.isLocked ? (
                             <>
                               <AppIcon name="lock" size={10} />
-                              <span>Locked</span>
+                              <span>{isVi ? "Đã khóa" : "Locked"}</span>
                             </>
                           ) : (
                             <>
                               <AppIcon name="globe" size={10} />
-                              <span>Public</span>
+                              <span>{isVi ? "Công khai" : "Public"}</span>
                             </>
                           )}
                         </span>
@@ -180,7 +199,9 @@ export default function ExplorePage() {
                         {cleanTitle(room.name)}
                       </h3>
                       <p className="text-crema-400 text-xs line-clamp-2 leading-relaxed hidden sm:block">
-                        Virtual workstation with camera accountability and central cadence.
+                        {isVi
+                          ? "Trạm học tập trung với camera cùng học và chu kỳ Pomodoro chuẩn."
+                          : "Virtual workstation with camera accountability and central cadence."}
                       </p>
                     </div>
 
@@ -191,11 +212,11 @@ export default function ExplorePage() {
                           "w-2 h-2 rounded-full",
                           room.participantCount > 0 ? "bg-patina-400" : "bg-crema-600"
                         )} />
-                        <span>{room.participantCount} / {room.maxParticipants} online</span>
+                        <span>{room.participantCount} / {room.maxParticipants} {isVi ? "đang học" : "online"}</span>
                       </div>
 
                       <span className="text-xs font-semibold text-brass-400 group-hover:text-brass-300 flex items-center gap-1 transition-transform group-hover:translate-x-0.5">
-                        <span>Enter</span>
+                        <span>{isVi ? "Vào phòng" : "Enter"}</span>
                         <span>→</span>
                       </span>
                     </div>
@@ -205,6 +226,46 @@ export default function ExplorePage() {
             </StaggerContainer>
           )}
         </div>
+
+        {/* Room Switch Restraint Confirmation Modal */}
+        {pendingSwitchRoom && activeRoom && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-espresso-950/85 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-sm p-4 bg-espresso-900 border border-bourbon-500/60 rounded-2xl shadow-2xl space-y-3 animate-pop-in">
+              <div className="flex items-center gap-2 text-bourbon-400">
+                <AppIcon name="logout" size={18} />
+                <h3 className="font-bold text-crema-100 text-sm">
+                  {isVi ? "Đang Trong Phòng Học Khác" : "Active In Another Room"}
+                </h3>
+              </div>
+              <p className="text-xs text-crema-300 font-mono leading-relaxed">
+                {isVi
+                  ? `Bạn đang tham gia phòng "${cleanTitle(activeRoom.roomName)}". Bạn có muốn rời phòng cũ để chuyển sang "${cleanTitle(pendingSwitchRoom.name)}" không?`
+                  : `You are currently in "${cleanTitle(activeRoom.roomName)}". Do you want to leave it and switch to "${cleanTitle(pendingSwitchRoom.name)}"?`}
+              </p>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setPendingSwitchRoom(null)}
+                  className="flex-1 py-2 px-3 rounded-xl bg-espresso-800 hover:bg-espresso-750 text-crema-300 text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  {isVi ? "Ở lại phòng cũ" : "Stay in current"}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const target = pendingSwitchRoom;
+                    setPendingSwitchRoom(null);
+                    await leaveActiveRoom();
+                    router.push(`/servers/${target.serverId}/rooms/${target.id}`);
+                  }}
+                  className="flex-1 py-2 px-3 rounded-xl bg-brass-500 hover:bg-brass-400 text-espresso-950 text-xs font-bold transition-all shadow-md cursor-pointer"
+                >
+                  {isVi ? "Rời & Chuyển phòng" : "Leave & Switch"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </PageTransition>
     </BannerBackground>
   );

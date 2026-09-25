@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
-import { cn, getArchetypeIcon, getArchetypeColor, cleanTitle } from "@/lib/utils";
+import { cn, getArchetypeIcon, cleanTitle } from "@/lib/utils";
 import { AppIcon } from "@/components/ui/Icon";
 import { CreateRoomModal } from "@/components/server/CreateRoomModal";
 import { SidebarAudioWidget } from "@/components/soundscape/SidebarAudioWidget";
@@ -14,10 +14,12 @@ import { SkeletonPulse } from "@/components/ui/motion";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { Id } from "@/convex/_generated/dataModel";
 import { useLanguage } from "@/context/LanguageContext";
+import { useActiveRoom } from "@/context/ActiveRoomContext";
 
 export function UnifiedSidebar() {
   const { language } = useLanguage();
   const isVi = language === "vi";
+  const { activeRoom, leaveActiveRoom } = useActiveRoom();
 
   const rooms = useQuery(api.rooms.getAllRooms);
   const regionalServers = useQuery(api.servers.getRegionalServers);
@@ -25,6 +27,20 @@ export function UnifiedSidebar() {
   const seedDefaultRooms = useMutation(api.rooms.seedDefaultRooms);
   const router = useRouter();
   const pathname = usePathname();
+
+  const [pendingSwitchRoom, setPendingSwitchRoom] = useState<{
+    serverId: string;
+    id: string;
+    name: string;
+  } | null>(null);
+
+  const handleRoomClick = (targetServerId: string, targetRoomId: string, targetRoomName: string) => {
+    if (activeRoom && activeRoom.roomId !== targetRoomId) {
+      setPendingSwitchRoom({ serverId: targetServerId, id: targetRoomId, name: targetRoomName });
+      return;
+    }
+    router.push(`/servers/${targetServerId}/rooms/${targetRoomId}`);
+  };
 
   const [filterArchetype, setFilterArchetype] = useState<string>("ALL");
   const [activeServerId, setActiveServerId] = useState<string>(() => {
@@ -300,9 +316,10 @@ export function UnifiedSidebar() {
 
               if (isCollapsed) {
                 return (
-                  <Link
+                  <button
                     key={room._id}
-                    href={`/servers/${room.serverId}/rooms/${room._id}`}
+                    type="button"
+                    onClick={() => handleRoomClick(room.serverId, room._id, room.name)}
                     className={cn(
                       "relative w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer",
                       isActive
@@ -317,7 +334,10 @@ export function UnifiedSidebar() {
                       <AppIcon
                         name={getArchetypeIcon(room.archetype)}
                         size={16}
-                        className={cn(getArchetypeColor(room.archetype), "shrink-0")}
+                        className={cn(
+                          "shrink-0 transition-colors",
+                          isActive ? "text-brass-300" : "text-crema-500 group-hover:text-crema-200"
+                        )}
                       />
                     )}
                     {room.participantCount > 0 && (
@@ -325,14 +345,15 @@ export function UnifiedSidebar() {
                         {room.participantCount}
                       </span>
                     )}
-                  </Link>
+                  </button>
                 );
               }
 
               return (
-                <Link
+                <button
                   key={room._id}
-                  href={`/servers/${room.serverId}/rooms/${room._id}`}
+                  type="button"
+                  onClick={() => handleRoomClick(room.serverId, room._id, room.name)}
                   className={cn(
                     "group flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-xs transition-all text-left cursor-pointer",
                     isActive
@@ -347,7 +368,10 @@ export function UnifiedSidebar() {
                     <AppIcon
                       name={getArchetypeIcon(room.archetype)}
                       size={14}
-                      className={cn(getArchetypeColor(room.archetype), "shrink-0")}
+                      className={cn(
+                        "shrink-0 transition-colors",
+                        isActive ? "text-brass-300" : "text-crema-500 group-hover:text-crema-200"
+                      )}
                     />
                   )}
 
@@ -371,7 +395,7 @@ export function UnifiedSidebar() {
                       24/7
                     </span>
                   )}
-                </Link>
+                </button>
               );
             })}
           </>
@@ -431,6 +455,46 @@ export function UnifiedSidebar() {
         onClose={() => setIsSettingsOpen(false)}
         onRegionChange={(id) => setActiveServerId(id)}
       />
+
+      {/* Room Switch Restraint Confirmation Modal */}
+      {pendingSwitchRoom && activeRoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-espresso-950/85 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-sm p-4 bg-espresso-900 border border-bourbon-500/60 rounded-2xl shadow-2xl space-y-3 animate-pop-in">
+            <div className="flex items-center gap-2 text-bourbon-400">
+              <AppIcon name="logout" size={18} />
+              <h3 className="font-bold text-crema-100 text-sm">
+                {isVi ? "Đang Trong Phòng Học Khác" : "Active In Another Room"}
+              </h3>
+            </div>
+            <p className="text-xs text-crema-300 font-mono leading-relaxed">
+              {isVi
+                ? `Bạn đang tham gia phòng "${cleanTitle(activeRoom.roomName)}". Bạn có muốn rời phòng cũ để chuyển sang "${cleanTitle(pendingSwitchRoom.name)}" không?`
+                : `You are currently in "${cleanTitle(activeRoom.roomName)}". Do you want to leave it and switch to "${cleanTitle(pendingSwitchRoom.name)}"?`}
+            </p>
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setPendingSwitchRoom(null)}
+                className="flex-1 py-2 px-3 rounded-xl bg-espresso-800 hover:bg-espresso-750 text-crema-300 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                {isVi ? "Ở lại phòng cũ" : "Stay in current"}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const target = pendingSwitchRoom;
+                  setPendingSwitchRoom(null);
+                  await leaveActiveRoom();
+                  router.push(`/servers/${target.serverId}/rooms/${target.id}`);
+                }}
+                className="flex-1 py-2 px-3 rounded-xl bg-brass-500 hover:bg-brass-400 text-espresso-950 text-xs font-bold transition-all shadow-md cursor-pointer"
+              >
+                {isVi ? "Rời & Chuyển phòng" : "Leave & Switch"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

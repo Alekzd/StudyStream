@@ -140,12 +140,12 @@ export default function ProfilePage() {
               </h2>
             </div>
             <div className="flex items-center gap-1.5 text-[10px] font-mono text-crema-600">
-              <span>Less</span>
+              <span>{language === "vi" ? "Ít hơn" : "Less"}</span>
               <div className="w-2.5 h-2.5 rounded-sm bg-espresso-850 border border-espresso-700/40" />
               <div className="w-2.5 h-2.5 rounded-sm bg-brass-600" />
               <div className="w-2.5 h-2.5 rounded-sm bg-bourbon-500" />
               <div className="w-2.5 h-2.5 rounded-sm bg-bourbon-400" />
-              <span>More</span>
+              <span>{language === "vi" ? "Nhiều hơn" : "More"}</span>
             </div>
           </div>
 
@@ -154,7 +154,7 @@ export default function ProfilePage() {
               {days.map((day, idx) => (
                 <div
                   key={idx}
-                  title={`${day.dateStr}: ${day.minutes} mins`}
+                  title={`${day.dateStr}: ${day.minutes} ${language === "vi" ? "phút" : "mins"}`}
                   className={cn(
                     "w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-[4px] transition-all cursor-pointer hover:scale-125",
                     getHeatmapColor(day.minutes)

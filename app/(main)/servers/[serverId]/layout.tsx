@@ -1,5 +1,5 @@
 // app/(main)/servers/[serverId]/layout.tsx
-// StudyStream OS — Server layout with responsive channel sidebar + room viewport
+// StudyStream — Server layout with responsive channel sidebar + room viewport
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 

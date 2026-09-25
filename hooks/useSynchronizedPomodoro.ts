@@ -1,6 +1,6 @@
 "use client";
 // hooks/useSynchronizedPomodoro.ts
-// StudyStream OS — Client-side Pomodoro hook with NTP-like drift compensation
+// StudyStream — Client-side Pomodoro hook with NTP-like drift compensation
 //
 // DESIGN: We NEVER trust client clock for state truth.
 // `targetEndTime` comes from Convex server. We compute remaining time as:

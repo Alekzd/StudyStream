@@ -5,6 +5,7 @@ import { useLocalParticipant } from "@livekit/components-react";
 import { AppIcon } from "@/components/ui/Icon";
 import { AmbientAudioDock } from "@/components/soundscape/AmbientAudioDock";
 import { soundscape } from "@/lib/soundscape";
+import { useLanguage } from "@/context/LanguageContext";
 import { cn } from "@/lib/utils";
 
 export type GridLayoutType = "auto" | "2x2" | "3x3" | "4x4";
@@ -39,19 +40,21 @@ export function FloatingQuickActions({
   isSoundOpen,
   onToggleSound,
 }: FloatingQuickActionsProps) {
+  const { language } = useLanguage();
+  const isVi = language === "vi";
   const [isExpanded, setIsExpanded] = useState(true);
   const [isGridMenuOpen, setIsGridMenuOpen] = useState(false);
   const [isLocalAudioOpen, setIsLocalAudioOpen] = useState(false);
   const [isAudioActive, setIsAudioActive] = useState(false);
 
-  // Free-form Dragging State (iOS AssistiveTouch / floating bubble style)
+  // Free-form Dragging State (relative to video frame parent)
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const dragInfoRef = React.useRef<{
-    startX: number;
-    startY: number;
-    elemStartX: number;
-    elemStartY: number;
+    offsetX: number;
+    offsetY: number;
+    parentLeft: number;
+    parentTop: number;
     hasMoved: boolean;
   } | null>(null);
 
@@ -60,12 +63,15 @@ export function FloatingQuickActions({
     const container = containerRef.current;
     if (!container) return;
 
+    const parent = (container.offsetParent as HTMLElement) || container.parentElement;
+    const parentRect = parent ? parent.getBoundingClientRect() : { left: 0, top: 0 };
     const rect = container.getBoundingClientRect();
+
     dragInfoRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      elemStartX: rect.left,
-      elemStartY: rect.top,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      parentLeft: parentRect.left,
+      parentTop: parentRect.top,
       hasMoved: false,
     };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -73,25 +79,25 @@ export function FloatingQuickActions({
 
   const handleDragMove = (e: React.PointerEvent) => {
     if (!dragInfoRef.current) return;
-    const dx = e.clientX - dragInfoRef.current.startX;
-    const dy = e.clientY - dragInfoRef.current.startY;
-    if (Math.hypot(dx, dy) > 6) {
-      dragInfoRef.current.hasMoved = true;
-    }
-    if (!dragInfoRef.current.hasMoved) return;
+    dragInfoRef.current.hasMoved = true;
 
     const container = containerRef.current;
+    const parent = (container?.offsetParent as HTMLElement) || container?.parentElement;
+    const parentWidth = parent ? parent.clientWidth : window.innerWidth;
+    const parentHeight = parent ? parent.clientHeight : window.innerHeight;
+
     const elemWidth = container?.offsetWidth || 50;
     const elemHeight = container?.offsetHeight || 50;
 
     const margin = 8;
-    const minX = margin;
-    const maxX = Math.max(minX, window.innerWidth - elemWidth - margin);
-    const minY = margin;
-    const maxY = Math.max(minY, window.innerHeight - elemHeight - margin);
+    const rawX = e.clientX - dragInfoRef.current.parentLeft - dragInfoRef.current.offsetX;
+    const rawY = e.clientY - dragInfoRef.current.parentTop - dragInfoRef.current.offsetY;
 
-    const nextX = Math.min(Math.max(minX, dragInfoRef.current.elemStartX + dx), maxX);
-    const nextY = Math.min(Math.max(minY, dragInfoRef.current.elemStartY + dy), maxY);
+    const maxX = Math.max(margin, parentWidth - elemWidth - margin);
+    const maxY = Math.max(margin, parentHeight - elemHeight - margin);
+
+    const nextX = Math.min(Math.max(margin, rawX), maxX);
+    const nextY = Math.min(Math.max(margin, rawY), maxY);
 
     setPosition({ x: nextX, y: nextY });
   };
@@ -157,7 +163,7 @@ export function FloatingQuickActions({
   return (
     <div
       ref={containerRef}
-      className="absolute z-40 select-none flex flex-col pointer-events-none"
+      className="absolute z-30 select-none flex flex-col pointer-events-none"
       style={
         position
           ? {
@@ -168,7 +174,7 @@ export function FloatingQuickActions({
               alignItems: isExpanded ? "center" : "flex-start",
             }
           : {
-              bottom: "max(2rem, calc(env(safe-area-inset-bottom) + 1rem))",
+              bottom: "max(1.5rem, calc(env(safe-area-inset-bottom) + 0.75rem))",
               left: isExpanded ? "50%" : "1rem",
               transform: isExpanded ? "translateX(-50%)" : "translateX(0)",
               alignItems: isExpanded ? "center" : "flex-start",
@@ -229,7 +235,7 @@ export function FloatingQuickActions({
             "bg-espresso-900/90 border border-brass-500/50 hover:border-brass-400 hover:scale-105 active:scale-95 transition-transform",
             isMicrophoneEnabled ? "ring-2 ring-patina-500/30" : "ring-1 ring-bourbon-500/30"
           )}
-          title="Kéo vòng quanh để di chuyển • Nhấp để mở"
+          title={isVi ? "Kéo để di chuyển • Nhấp để mở" : "Drag to move • Click to expand"}
           aria-label="Expand quick action bar"
         >
           {/* Main Icon */}
@@ -282,8 +288,9 @@ export function FloatingQuickActions({
             onPointerDown={handleDragStart}
             onPointerMove={handleDragMove}
             onPointerUp={handleDragEnd}
+            onDoubleClick={() => setPosition(null)}
             className="flex items-center justify-center w-5 h-9 -ml-0.5 text-crema-600 hover:text-brass-400 cursor-grab active:cursor-grabbing touch-none select-none transition-colors"
-            title="Kéo thanh công cụ (Drag toolbar)"
+            title={isVi ? "Kéo để di chuyển • Nhấp đúp để căn giữa khung video" : "Drag to move • Double-click to center in video"}
             aria-label="Drag toolbar"
           >
             <div className="flex flex-col gap-0.5 items-center pointer-events-none">
@@ -316,12 +323,12 @@ export function FloatingQuickActions({
             )}
             title={
               isSilentRoom
-                ? "Silent Room: Mic locked"
+                ? (isVi ? "Phòng im lặng: Micro bị khóa" : "Silent Room: Mic locked")
                 : isMicrophoneEnabled
-                ? "Mute Microphone"
-                : "Unmute Microphone"
+                ? (isVi ? "Tắt Micro" : "Mute Microphone")
+                : (isVi ? "Bật Micro" : "Unmute Microphone")
             }
-            aria-label={isMicrophoneEnabled ? "Mute Microphone" : "Unmute Microphone"}
+            aria-label={isMicrophoneEnabled ? (isVi ? "Tắt Micro" : "Mute Microphone") : (isVi ? "Bật Micro" : "Unmute Microphone")}
           >
             <AppIcon
               name={isMicrophoneEnabled ? "micOn" : "micOff"}
@@ -340,8 +347,8 @@ export function FloatingQuickActions({
                 ? "bg-patina-500/20 text-patina-300 border border-patina-500/60 hover:bg-patina-500/30 shadow-sm"
                 : "bg-espresso-800 text-crema-400 border border-espresso-700 hover:text-crema-100 hover:bg-espresso-750"
             )}
-            title={isCameraEnabled ? "Turn Off Camera" : "Turn On Camera"}
-            aria-label={isCameraEnabled ? "Turn Off Camera" : "Turn On Camera"}
+            title={isCameraEnabled ? (isVi ? "Tắt Camera" : "Turn Off Camera") : (isVi ? "Bật Camera" : "Turn On Camera")}
+            aria-label={isCameraEnabled ? (isVi ? "Tắt Camera" : "Turn Off Camera") : (isVi ? "Bật Camera" : "Turn On Camera")}
           >
             <AppIcon
               name={isCameraEnabled ? "videoOn" : "videoOff"}
@@ -360,8 +367,8 @@ export function FloatingQuickActions({
                 ? "bg-brass-500/20 text-brass-300 border border-brass-500/60 shadow-sm"
                 : "bg-espresso-800 text-crema-400 border border-espresso-700 hover:text-crema-100 hover:bg-espresso-750"
             )}
-            title="Ambient Audio Soundscape (Coffee, Rain, Jazz, Fire)"
-            aria-label="Toggle Ambient Audio Soundscape"
+            title={isVi ? "Âm thanh nền tập trung (Cà phê, Mưa, Jazz, Lửa)" : "Ambient Audio Soundscape (Coffee, Rain, Jazz, Fire)"}
+            aria-label={isVi ? "Bật/Tắt Âm thanh nền" : "Toggle Ambient Audio Soundscape"}
           >
             <AppIcon
               name="headphones"
@@ -381,8 +388,8 @@ export function FloatingQuickActions({
                   ? "bg-brass-500/20 text-brass-300 border border-brass-500/60 shadow-sm"
                   : "bg-espresso-800 text-crema-400 border border-espresso-700 hover:text-crema-100 hover:bg-espresso-750"
               )}
-              title={`Grid Layout (${gridLayout.toUpperCase()}) — Click to change 2x2, 3x3, 4x4`}
-              aria-label="Select Video Grid Layout"
+              title={isVi ? `Bố cục lưới (${gridLayout.toUpperCase()}) — Nhấp để đổi 2x2, 3x3, 4x4` : `Grid Layout (${gridLayout.toUpperCase()}) — Click to change 2x2, 3x3, 4x4`}
+              aria-label={isVi ? "Chọn bố cục lưới" : "Select Video Grid Layout"}
             >
               <AppIcon name="grid" size={17} />
             </button>
@@ -399,8 +406,8 @@ export function FloatingQuickActions({
                   ? "bg-brass-500/20 text-brass-300 border border-brass-500/60 hover:bg-brass-500/30 shadow-sm"
                   : "bg-espresso-800 text-crema-400 border border-espresso-700 hover:text-crema-100 hover:bg-espresso-750"
               )}
-              title={isScreenShareEnabled ? "Stop Sharing Screen" : "Share Screen"}
-              aria-label={isScreenShareEnabled ? "Stop Sharing Screen" : "Share Screen"}
+              title={isScreenShareEnabled ? (isVi ? "Dừng chia sẻ màn hình" : "Stop Sharing Screen") : (isVi ? "Chia sẻ màn hình" : "Share Screen")}
+              aria-label={isScreenShareEnabled ? (isVi ? "Dừng chia sẻ màn hình" : "Stop Sharing Screen") : (isVi ? "Chia sẻ màn hình" : "Share Screen")}
             >
               <AppIcon name="screenShare" size={18} />
             </button>
@@ -417,8 +424,8 @@ export function FloatingQuickActions({
                   ? "bg-brass-500 text-espresso-950 font-bold shadow-md"
                   : "bg-espresso-800 text-crema-300 border border-espresso-700 hover:text-crema-100 hover:bg-espresso-750"
               )}
-              title={isChatOpen ? "Close Chat Drawer" : "Open Chat Drawer"}
-              aria-label={isChatOpen ? "Close Chat Drawer" : "Open Chat Drawer"}
+              title={isChatOpen ? (isVi ? "Đóng trò chuyện" : "Close Chat Drawer") : (isVi ? "Mở trò chuyện" : "Open Chat Drawer")}
+              aria-label={isChatOpen ? (isVi ? "Đóng trò chuyện" : "Close Chat Drawer") : (isVi ? "Mở trò chuyện" : "Open Chat Drawer")}
             >
               <AppIcon name="chat" size={18} />
             </button>
@@ -432,8 +439,8 @@ export function FloatingQuickActions({
                 type="button"
                 onClick={onLeaveRoom}
                 className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer bg-bourbon-500/20 text-bourbon-400 border border-bourbon-500/50 hover:bg-bourbon-500/30 hover:border-bourbon-400 hover:text-bourbon-300 shadow-sm hover-spring"
-                title="Rời phòng / Exit Room"
-                aria-label="Rời phòng / Exit Room"
+                title={isVi ? "Rời phòng học" : "Leave room"}
+                aria-label={isVi ? "Rời phòng học" : "Leave room"}
               >
                 <AppIcon name="logout" size={18} className="text-bourbon-400" />
               </button>
@@ -449,8 +456,8 @@ export function FloatingQuickActions({
               setIsLocalAudioOpen(false);
             }}
             className="w-7 h-7 rounded-full flex items-center justify-center text-crema-500 hover:text-crema-200 hover:bg-espresso-800 transition-colors ml-0.5 cursor-pointer"
-            title="Retract to floating badge"
-            aria-label="Retract action bar"
+            title={isVi ? "Thu gọn thanh công cụ" : "Minimize toolbar"}
+            aria-label={isVi ? "Thu gọn thanh công cụ" : "Minimize toolbar"}
           >
             <AppIcon name="close" size={13} />
           </button>

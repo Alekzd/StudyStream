@@ -5,7 +5,7 @@ import { SOUND_TRACKS } from "@/lib/soundscape";
 import phJson from "@iconify-json/ph/icons.json";
 import solarJson from "@iconify-json/solar/icons.json";
 
-describe("StudyStream OS — Unified Icon Registry", () => {
+describe("StudyStream — Unified Icon Registry", () => {
   const phIcons = phJson.icons as Record<string, unknown>;
   const solarIcons = solarJson.icons as Record<string, unknown>;
 

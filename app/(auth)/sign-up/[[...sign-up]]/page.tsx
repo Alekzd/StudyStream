@@ -10,7 +10,7 @@ export default function SignUpPage() {
             <AppIcon name="coffee" size={24} className="text-brass-400" />
           </div>
           <h1 className="text-2xl font-serif font-bold text-crema-100 mb-1">
-            StudyStream OS
+            StudyStream
           </h1>
           <p className="text-crema-500 text-xs tracking-wide">
             Join thousands of students in virtual focus rooms.

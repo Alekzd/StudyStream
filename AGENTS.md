@@ -1,8 +1,7 @@
-# StudyStream OS — Agent Instructions
-
+# StudyStream — Agent Instructions
 
 ## Project Overview
-StudyStream OS is a pure web-based virtual study platform (NO native app installation required).
+StudyStream is a pure web-based virtual study platform (NO native app installation required).
 CSW.live-inspired body doubling + Discord-style multi-server rooms.
 
 ## Tech Stack

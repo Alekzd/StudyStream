@@ -1,5 +1,5 @@
 // lib/utils.ts
-// StudyStream OS — Utility functions
+// StudyStream — Utility functions
 
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";

@@ -8,7 +8,9 @@ import { useAuth } from "@clerk/nextjs";
 import { useEffect } from "react";
 import { api } from "@/convex/_generated/api";
 
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "";
+const convexUrl =
+  process.env.NEXT_PUBLIC_CONVEX_URL ||
+  "https://lovable-kudu-593.convex.cloud";
 const convex = new ConvexReactClient(convexUrl);
 
 function UserSyncWatcher() {

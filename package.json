@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "convex:dev": "node -e \"process.chdir(require('fs').realpathSync(process.cwd())); const cp = require('child_process').spawnSync('npx', ['convex', 'dev'], {stdio: 'inherit', shell: true}); process.exit(cp.status || 0)\"",
+    "convex:deploy": "node -e \"process.chdir(require('fs').realpathSync(process.cwd())); const cp = require('child_process').spawnSync('npx', ['convex', 'deploy', '-y'], {stdio: 'inherit', shell: true}); process.exit(cp.status || 0)\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

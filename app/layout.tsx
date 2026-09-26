@@ -28,13 +28,17 @@ export const metadata: Metadata = {
   },
 };
 
+const clerkPublishableKey =
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+  "pk_test_ZnVsbC1sYWR5YmlyZC0zNDIyLmNsZXJrLmFjY291bnRzLmRldiQ";
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider publishableKey={clerkPublishableKey}>
       <html lang="en" className="dark bg-espresso-950" suppressHydrationWarning>
         <body className="bg-espresso-950 text-crema-100 antialiased min-h-dvh flex flex-col selection:bg-brass-500/30 selection:text-brass-300">
           <ConvexClientProvider>
